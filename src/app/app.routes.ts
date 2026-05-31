@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, adminGuard, guestGuard } from './core/guards/auth.guard';
+import { authGuard, adminGuard, gestorGuard, guestGuard, ongContextGuard, ongAdminGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   {
@@ -43,6 +43,10 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/occurrence/occurrence.component').then(m => m.OccurrenceComponent)
   },
   {
+    path: 'registrar-ong',
+    loadComponent: () => import('./pages/registrar-ong/registrar-ong.component').then(m => m.RegistrarOngComponent)
+  },
+  {
     path: 'login',
     canActivate: [guestGuard],
     loadComponent: () => import('./pages/login/login.component').then(m => m.LoginComponent)
@@ -74,44 +78,63 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/dashboard/my-volunteer/my-volunteer.component').then(m => m.MyVolunteerComponent)
       },
       {
+        path: 'minhas-denuncias',
+        loadComponent: () => import('./pages/dashboard/my-denuncias/my-denuncias.component').then(m => m.MyDenunciasComponent)
+      },
+      {
+        path: 'gestor/denuncias',
+        canActivate: [gestorGuard],
+        loadComponent: () => import('./pages/dashboard/admin/denuncias/admin-denuncias.component').then(m => m.AdminDenunciasComponent)
+      },
+      {
         path: 'admin/animais',
-        canActivate: [adminGuard],
+        canActivate: [ongAdminGuard],
         loadComponent: () => import('./pages/dashboard/admin/animals/admin-animals.component').then(m => m.AdminAnimalsComponent)
       },
       {
         path: 'admin/adocoes',
-        canActivate: [adminGuard],
+        canActivate: [ongAdminGuard],
         loadComponent: () => import('./pages/dashboard/admin/adoptions/admin-adoptions.component').then(m => m.AdminAdoptionsComponent)
       },
       {
         path: 'admin/doacoes',
-        canActivate: [adminGuard],
+        canActivate: [ongAdminGuard],
         loadComponent: () => import('./pages/dashboard/admin/donations/admin-donations.component').then(m => m.AdminDonationsComponent)
       },
       {
         path: 'admin/mensagens',
-        canActivate: [adminGuard],
+        canActivate: [ongAdminGuard],
         loadComponent: () => import('./pages/dashboard/admin/contacts/admin-contacts.component').then(m => m.AdminContactsComponent)
       },
       {
         path: 'admin/voluntarios',
-        canActivate: [adminGuard],
+        canActivate: [ongAdminGuard],
         loadComponent: () => import('./pages/dashboard/admin/volunteers/admin-volunteers.component').then(m => m.AdminVolunteersComponent)
       },
       {
         path: 'admin/apadrinhamentos',
-        canActivate: [adminGuard],
+        canActivate: [ongAdminGuard],
         loadComponent: () => import('./pages/dashboard/admin/godparents/admin-godparents.component').then(m => m.AdminGodparentsComponent)
       },
       {
         path: 'admin/ocorrencias',
-        canActivate: [adminGuard],
+        canActivate: [ongAdminGuard],
         loadComponent: () => import('./pages/dashboard/admin/occurrences/admin-occurrences.component').then(m => m.AdminOccurrencesComponent)
       },
       {
         path: 'admin/visitas',
-        canActivate: [adminGuard],
+        canActivate: [ongAdminGuard],
         loadComponent: () => import('./pages/dashboard/admin/follow-up/admin-follow-up.component').then(m => m.AdminFollowUpComponent)
+      },
+      {
+        path: 'admin/usuarios',
+        canActivate: [ongAdminGuard],
+        loadComponent: () => import('./pages/dashboard/admin/usuarios/admin-usuarios.component').then(m => m.AdminUsuariosComponent)
+      },
+      {
+        path: 'ong/membros',
+        canActivate: [authGuard],
+        loadComponent: () => import('./pages/dashboard/ong/membros/ong-membros.component').then(m => m.OngMembrosComponent)
       }
     ]
   },

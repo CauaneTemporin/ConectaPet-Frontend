@@ -1,9 +1,15 @@
 // ── USER ─────────────────────────────────────
+export type UserRole = 'USER' | 'ADMIN' | 'GESTOR_PUBLICO';
 export interface User {
   id: number; name: string; email: string;
   phone?: string; cpf?: string; address?: string;
-  role: 'USER' | 'ADMIN'; createdAt?: string;
+  role: UserRole; createdAt?: string;
 }
+export interface UserAdmin {
+  id: number; name: string; email: string; city: string;
+  role: UserRole; createdAt: string;
+}
+export interface AlterarRoleRequest { role: 'USER' | 'GESTOR_PUBLICO'; }
 export interface LoginRequest    { email: string; password: string; }
 export interface RegisterRequest { name: string; email: string; password: string; phone?: string; cpf?: string; address?: string; }
 export interface UpdateProfileRequest { name?: string; phone?: string; address?: string; }
@@ -153,6 +159,85 @@ export interface FollowUpVisitRequest {
   animalName: string;
   scheduledDate: string;
   notes?: string;
+}
+
+// ── DENUNCIA ──────────────────────────────────
+export type DenunciaCategoria = 'MAUS_TRATOS' | 'ABANDONO' | 'COMERCIO_ILEGAL' | 'FALTA_DE_SANEAMENTO' | 'OUTROS';
+export type DenunciaStatus    = 'PENDENTE' | 'EM_ANALISE' | 'RESOLVIDA' | 'ARQUIVADA';
+
+export interface Denuncia {
+  id: number;
+  userId: number; userName: string;
+  titulo: string; descricao: string; endereco?: string;
+  categoria: DenunciaCategoria;
+  status: DenunciaStatus;
+  observacaoGestor?: string;
+  analisadoPorNome?: string; analisadoEm?: string;
+  createdAt: string; updatedAt: string;
+}
+export interface DenunciaRequest {
+  titulo: string; descricao: string;
+  endereco?: string; categoria: DenunciaCategoria;
+}
+export interface DenunciaStatusRequest {
+  status: DenunciaStatus; observacaoGestor?: string;
+}
+
+// ── ONG ──────────────────────────────────────
+export type OngMembroRole = 'ONG_ADMIN' | 'ONG_MEMBRO';
+export type OngStatus     = 'PENDENTE' | 'ATIVA' | 'INATIVA';
+
+export interface Ong {
+  id: number;
+  cnpj: string;
+  razaoSocial: string;
+  nomeFantasia: string;
+  email: string;
+  telefone?: string;
+  endereco?: string;
+  cidade: string;
+  estado: string;
+  descricao?: string;
+  logoUrl?: string;
+  status: OngStatus;
+  createdAt: string;
+}
+
+export interface OngResumo {
+  id: number;
+  nomeFantasia: string;
+  razaoSocial: string;
+  cidade: string;
+  estado: string;
+  descricao?: string;
+  logoUrl?: string;
+  totalAnimais?: number;
+  myRole?: OngMembroRole;
+}
+
+export interface OngMembro {
+  id: number;
+  userId: number;
+  userName: string;
+  userEmail: string;
+  role: OngMembroRole;
+  joinedAt: string;
+}
+
+export interface CriarOngRequest {
+  cnpj: string;
+  razaoSocial: string;
+  nomeFantasia: string;
+  email: string;
+  telefone?: string;
+  endereco?: string;
+  cidade: string;
+  estado: string;
+  descricao?: string;
+}
+
+export interface AlterarMembroRoleRequest {
+  role: OngMembroRole;
 }
 
 // ── TOAST ─────────────────────────────────────

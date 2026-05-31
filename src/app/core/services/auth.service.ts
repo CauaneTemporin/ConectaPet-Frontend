@@ -16,10 +16,12 @@ export class AuthService {
   private readonly USER_KEY  = 'cp_user';
   private readonly api       = environment.apiUrl;
 
-  readonly currentUser = signal<User | null>(this.loadUser());
-  readonly token       = signal<string | null>(this.loadToken());
-  readonly isLoggedIn  = computed(() => !!this.token() && !!this.currentUser());
-  readonly isAdmin     = computed(() => this.currentUser()?.role === 'ADMIN');
+  readonly currentUser      = signal<User | null>(this.loadUser());
+  readonly token            = signal<string | null>(this.loadToken());
+  readonly isLoggedIn       = computed(() => !!this.token() && !!this.currentUser());
+  readonly isAdmin          = computed(() => this.currentUser()?.role === 'ADMIN');
+  readonly isGestorPublico  = computed(() => this.currentUser()?.role === 'GESTOR_PUBLICO');
+  readonly isGestorOrAdmin  = computed(() => this.isAdmin() || this.isGestorPublico());
 
   constructor(private http: HttpClient, private router: Router) {}
 

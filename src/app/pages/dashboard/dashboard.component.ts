@@ -1,7 +1,8 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { OngContextService } from '../../core/services/ong-context.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -11,24 +12,50 @@ import { AuthService } from '../../core/services/auth.service';
     <div class="dashboard-wrap page-enter">
 
       <div class="dash-sidebar">
+
+        <!-- ONG context bar -->
+        @if (ongCtx.hasOng()) {
+          <div class="ong-context-bar">
+            <div class="ong-context-logo">🐾</div>
+            <div class="ong-context-info">
+              <span class="ong-context-name">{{ ongCtx.selectedOng()!.nomeFantasia }}</span>
+              <span class="ong-context-loc">{{ ongCtx.selectedOng()!.cidade }}, {{ ongCtx.selectedOng()!.estado }}</span>
+            </div>
+            <button class="ong-change-btn" (click)="trocarOng()" title="Trocar ONG">⇄</button>
+          </div>
+        }
+
         <h2>Painel</h2>
 
-        <a class="dash-nav-btn" routerLink="visao-geral"     routerLinkActive="active">📊 Visão Geral</a>
-        <a class="dash-nav-btn" routerLink="minhas-adocoes"   routerLinkActive="active">🏠 Minhas Adoções</a>
-        <a class="dash-nav-btn" routerLink="minhas-doacoes"   routerLinkActive="active">♥ Minhas Doações</a>
-        <a class="dash-nav-btn" routerLink="meus-afilhados"   routerLinkActive="active">⭐ Meus Afilhados</a>
-        <a class="dash-nav-btn" routerLink="meu-voluntariado" routerLinkActive="active">🙋 Voluntariado</a>
+        <a class="dash-nav-btn" routerLink="visao-geral"      routerLinkActive="active">📊 Visão Geral</a>
+          <a class="dash-nav-btn" routerLink="minhas-adocoes"   routerLinkActive="active">🏠 Minhas Adoções</a>
+          <a class="dash-nav-btn" routerLink="minhas-doacoes"   routerLinkActive="active">♥ Minhas Doações</a>
+          <a class="dash-nav-btn" routerLink="meus-afilhados"   routerLinkActive="active">⭐ Meus Afilhados</a>
+          <a class="dash-nav-btn" routerLink="meu-voluntariado" routerLinkActive="active">🙋 Voluntariado</a>
+          <a class="dash-nav-btn" routerLink="minhas-denuncias" routerLinkActive="active">🚨 Minhas Denúncias</a>
 
-        @if (auth.isAdmin()) {
           <div class="dash-divider"></div>
-          <a class="dash-nav-btn" routerLink="admin/animais"     routerLinkActive="active">🐾 Gerenciar Animais</a>
-          <a class="dash-nav-btn" routerLink="admin/adocoes"     routerLinkActive="active">📋 Solicitações</a>
-          <a class="dash-nav-btn" routerLink="admin/doacoes"     routerLinkActive="active">💰 Doações</a>
-          <a class="dash-nav-btn" routerLink="admin/mensagens"   routerLinkActive="active">✉️ Mensagens</a>
+          <span class="dash-section-label">Minha ONG</span>
+          <a class="dash-nav-btn" routerLink="ong/membros" routerLinkActive="active">👥 Membros</a>
+
+        @if (auth.isGestorOrAdmin()) {
+          <div class="dash-divider"></div>
+          <span class="dash-section-label">Gestor Público</span>
+          <a class="dash-nav-btn" routerLink="gestor/denuncias" routerLinkActive="active">📋 Denúncias</a>
+        }
+
+        @if (auth.isAdmin() || ongCtx.isOngAdmin()) {
+          <div class="dash-divider"></div>
+          <span class="dash-section-label">Administração</span>
+          <a class="dash-nav-btn" routerLink="admin/animais"         routerLinkActive="active">🐾 Gerenciar Animais</a>
+          <a class="dash-nav-btn" routerLink="admin/adocoes"         routerLinkActive="active">📋 Solicitações</a>
+          <a class="dash-nav-btn" routerLink="admin/doacoes"         routerLinkActive="active">💰 Doações</a>
+          <a class="dash-nav-btn" routerLink="admin/mensagens"       routerLinkActive="active">✉️ Mensagens</a>
           <a class="dash-nav-btn" routerLink="admin/voluntarios"     routerLinkActive="active">🤝 Voluntários</a>
           <a class="dash-nav-btn" routerLink="admin/apadrinhamentos" routerLinkActive="active">⭐ Apadrinhamentos</a>
           <a class="dash-nav-btn" routerLink="admin/ocorrencias"     routerLinkActive="active">🚨 Ocorrências</a>
           <a class="dash-nav-btn" routerLink="admin/visitas"         routerLinkActive="active">📅 Visitas</a>
+          <a class="dash-nav-btn" routerLink="admin/usuarios"        routerLinkActive="active">👥 Usuários</a>
         }
 
         <div class="dash-spacer"></div>
@@ -50,7 +77,7 @@ import { AuthService } from '../../core/services/auth.service';
 
     .dash-sidebar {
       background: var(--forest);
-      padding: 2rem 1.25rem;
+      padding: 0 1.25rem 2rem;
       display: flex;
       flex-direction: column;
       gap: 4px;
@@ -60,9 +87,39 @@ import { AuthService } from '../../core/services/auth.service';
         font-size: 1rem;
         color: rgba(255,255,255,0.5);
         margin-bottom: 1rem;
-        padding-bottom: 0.75rem;
+        padding: 1.5rem 0 .75rem;
         border-bottom: 1px solid rgba(255,255,255,0.1);
       }
+    }
+
+    .ong-context-bar {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(168,216,168,0.12);
+      border-bottom: 1px solid rgba(168,216,168,0.15);
+      padding: 10px 4px;
+      margin: 0 -1.25rem;
+      padding-left: 1.25rem;
+      padding-right: 1.25rem;
+    }
+    .ong-context-logo {
+      width: 30px; height: 30px; background: rgba(168,216,168,0.2);
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; flex-shrink: 0;
+    }
+    .ong-context-info { flex: 1; min-width: 0; }
+    .ong-context-name {
+      display: block; color: white; font-size: 12px; font-weight: 700;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .ong-context-loc {
+      display: block; color: rgba(255,255,255,0.45); font-size: 10px; margin-top: 1px;
+    }
+    .ong-change-btn {
+      background: none; border: 1px solid rgba(255,255,255,0.2);
+      color: rgba(255,255,255,0.6); font-size: 14px; cursor: pointer;
+      border-radius: 6px; padding: 2px 6px; flex-shrink: 0;
+      transition: all .2s;
+      &:hover { background: rgba(255,255,255,0.1); color: white; }
     }
 
     .dash-nav-btn {
@@ -92,6 +149,16 @@ import { AuthService } from '../../core/services/auth.service';
       margin: 0.75rem 0;
     }
 
+    .dash-section-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: rgba(255,255,255,0.35);
+      padding: 0 1rem;
+      margin-bottom: 2px;
+    }
+
     .dash-spacer { flex: 1; }
 
     .dash-main {
@@ -107,6 +174,7 @@ import { AuthService } from '../../core/services/auth.service';
         flex-wrap: wrap;
         padding: 1rem;
         h2 { display: none; }
+        .ong-context-bar { display: none; }
       }
       .dash-nav-btn { flex: 0 1 auto; font-size: 12px; padding: 0.4rem 0.75rem; }
       .dash-spacer  { display: none; }
@@ -114,5 +182,12 @@ import { AuthService } from '../../core/services/auth.service';
   `]
 })
 export class DashboardComponent {
-  auth = inject(AuthService);
+  auth   = inject(AuthService);
+  ongCtx = inject(OngContextService);
+  private router = inject(Router);
+
+  trocarOng(): void {
+    this.ongCtx.clearOng();
+    this.router.navigate(['/']);
+  }
 }

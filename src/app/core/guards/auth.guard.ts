@@ -2,16 +2,16 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { ToastService } from '../services/toast.service';
+import { OngContextService } from '../services/ong-context.service';
 
-export const authGuard: CanActivateFn = () => {
+
+export const authGuard: CanActivateFn = (_route, state) => {
   const auth   = inject(AuthService);
   const router = inject(Router);
-  const toast  = inject(ToastService);
 
   if (auth.isLoggedIn()) return true;
 
-  toast.info('Faça login para continuar.');
-  router.navigate(['/login']);
+  router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
   return false;
 };
 
@@ -27,12 +27,49 @@ export const adminGuard: CanActivateFn = () => {
   return false;
 };
 
+export const gestorGuard: CanActivateFn = () => {
+  const auth   = inject(AuthService);
+  const router = inject(Router);
+  const toast  = inject(ToastService);
+
+  if (auth.isGestorOrAdmin()) return true;
+
+  toast.error('Acesso restrito a gestores públicos e administradores.');
+  router.navigate(['/']);
+  return false;
+};
+
 export const guestGuard: CanActivateFn = () => {
   const auth   = inject(AuthService);
   const router = inject(Router);
 
   if (!auth.isLoggedIn()) return true;
 
+  router.navigate(['/dashboard']);
+  return false;
+};
+
+export const ongContextGuard: CanActivateFn = () => {
+  const ongCtx = inject(OngContextService);
+  const router = inject(Router);
+  const toast  = inject(ToastService);
+
+  if (ongCtx.hasOng()) return true;
+
+  toast.error('Selecione uma ONG para acessar este recurso.');
+  router.navigate(['/']);
+  return false;
+};
+
+export const ongAdminGuard: CanActivateFn = () => {
+  const auth   = inject(AuthService);
+  const ongCtx = inject(OngContextService);
+  const router = inject(Router);
+  const toast  = inject(ToastService);
+
+  if (auth.isAdmin() || ongCtx.isOngAdmin()) return true;
+
+  toast.error('Acesso restrito a administradores da ONG.');
   router.navigate(['/dashboard']);
   return false;
 };

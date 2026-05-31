@@ -1,8 +1,10 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { OngService } from '../../core/services/api.services';
+import { OngContextService } from '../../core/services/ong-context.service';
 import { ToastService } from '../../core/services/toast.service';
 
 @Component({
@@ -73,6 +75,11 @@ import { ToastService } from '../../core/services/toast.service';
             </div>
           }
         </div>
+
+        <div class="ong-register-link">
+          <span>Representa uma ONG?</span>
+          <a routerLink="/registrar-ong">Cadastre sua organização →</a>
+        </div>
       </div>
 
       <!-- RIGHT: features panel -->
@@ -98,8 +105,16 @@ import { ToastService } from '../../core/services/toast.service';
 
     .login-left {
       background: var(--cream-warm);
-      display: flex; align-items: center; justify-content: center;
-      padding: 3rem;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 3rem; gap: 1.25rem;
+    }
+
+    .ong-register-link {
+      width: 100%; max-width: 380px;
+      text-align: center; font-size: 13px;
+      span { color: var(--muted); }
+      a { color: var(--teal-dark); font-weight: 700; text-decoration: none; margin-left: 6px;
+          &:hover { text-decoration: underline; } }
     }
 
     .login-card {
@@ -123,6 +138,17 @@ import { ToastService } from '../../core/services/toast.service';
       }
       h2 { font-family: 'Lora', serif; font-size: 1.3rem; color: var(--forest); }
       p  { font-size: 13.5px; color: var(--muted); }
+    }
+
+    .return-note {
+      background: rgba(168,216,168,0.25);
+      border: 1px solid rgba(168,216,168,0.5);
+      border-radius: 10px;
+      padding: .65rem 1rem;
+      font-size: 13px;
+      color: var(--forest);
+      margin-bottom: 1rem;
+      text-align: center;
     }
 
     .auth-tabs {
@@ -197,11 +223,16 @@ import { ToastService } from '../../core/services/toast.service';
 })
 export class LoginComponent {
   private authSvc = inject(AuthService);
+  private ongSvc  = inject(OngService);
+  private ongCtx  = inject(OngContextService);
   private toast   = inject(ToastService);
   private router  = inject(Router);
+  private route   = inject(ActivatedRoute);
 
-  tab      = signal<'login' | 'register'>('login');
-  loading  = signal(false);
+  tab     = signal<'login' | 'register'>('login');
+  loading = signal(false);
+
+  returnUrl = this.route.snapshot.queryParams['returnUrl'] ?? '/dashboard';
 
   // Login fields
   loginEmail = ''; loginPw = '';
@@ -216,7 +247,7 @@ export class LoginComponent {
     this.authSvc.login({ email: this.loginEmail, password: this.loginPw }).subscribe({
       next: (res: any) => {
         this.toast.success(`Bem-vindo, ${res.user.name.split(' ')[0]}! 🐾`);
-        this.router.navigate(['/dashboard']);
+        this.autoSelectOngAndNavigate();
       },
       error: (err: any) => { this.toast.handleError(err, 'E-mail ou senha incorretos.'); this.loading.set(false); }
     });
@@ -228,8 +259,20 @@ export class LoginComponent {
     if (this.regPw.length < 6) { this.toast.error('Senha deve ter no mínimo 6 caracteres.'); return; }
     this.loading.set(true);
     this.authSvc.register({ name, email: this.regEmail, password: this.regPw, phone: this.regPhone, cpf: this.regCpf, address: this.regAddress }).subscribe({
-      next: () => { this.toast.success('Conta criada com sucesso! 🐾'); this.router.navigate(['/dashboard']); },
+      next: () => { this.toast.success('Conta criada com sucesso! 🐾'); this.autoSelectOngAndNavigate(); },
       error: (err: any) => { this.toast.handleError(err); this.loading.set(false); }
+    });
+  }
+
+  private autoSelectOngAndNavigate(): void {
+    this.ongSvc.minhasOngs().subscribe({
+      next: (lista) => {
+        if (lista.length > 0 && !this.ongCtx.hasOng()) {
+          this.ongCtx.selectOng(lista[0]);
+        }
+        this.router.navigateByUrl(this.returnUrl);
+      },
+      error: () => this.router.navigateByUrl(this.returnUrl)
     });
   }
 }

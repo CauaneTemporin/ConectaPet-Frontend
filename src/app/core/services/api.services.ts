@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -11,7 +11,10 @@ import {
   Contact, ContactRequest,
   Shelter, AdminStats,
   Occurrence, OccurrenceRequest,
-  FollowUpVisit, FollowUpVisitRequest
+  FollowUpVisit, FollowUpVisitRequest,
+  Denuncia, DenunciaRequest, DenunciaStatusRequest,
+  UserAdmin, AlterarRoleRequest,
+  Ong, OngResumo, OngMembro, CriarOngRequest, AlterarMembroRoleRequest
 } from '../../shared/models';
 
 const API = environment.apiUrl;
@@ -181,6 +184,33 @@ export class ShelterService {
 export class AdminService {
   constructor(private http: HttpClient) {}
   stats(): Observable<AdminStats> { return this.http.get<AdminStats>(`${API}/admin/stats`); }
+  listUsers(): Observable<UserAdmin[]> { return this.http.get<UserAdmin[]>(`${API}/admin/usuarios`); }
+  alterarRole(userId: number, req: AlterarRoleRequest): Observable<UserAdmin> {
+    return this.http.patch<UserAdmin>(`${API}/admin/usuarios/${userId}/role`, req);
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class DenunciaService {
+  constructor(private http: HttpClient) {}
+
+  criar(req: DenunciaRequest): Observable<Denuncia> {
+    return this.http.post<Denuncia>(`${API}/denuncias`, req);
+  }
+
+  mine(): Observable<Denuncia[]> {
+    return this.http.get<Denuncia[]>(`${API}/denuncias/mine`);
+  }
+
+  listAll(status?: string): Observable<Denuncia[]> {
+    let params = new HttpParams();
+    if (status) params = params.set('status', status);
+    return this.http.get<Denuncia[]>(`${API}/denuncias`, { params });
+  }
+
+  atualizarStatus(id: number, req: DenunciaStatusRequest): Observable<Denuncia> {
+    return this.http.patch<Denuncia>(`${API}/denuncias/${id}/status`, req);
+  }
 }
 
 @Injectable({ providedIn: 'root' })
@@ -233,4 +263,34 @@ export class FollowUpService {
   delete(id: number): Observable<void> {
     return this.http.delete<void>(`${API}/follow-up-visits/${id}`);
   }
+}
+
+@Injectable({ providedIn: 'root' })
+export class OngService {
+  private http = inject(HttpClient);
+  private base = `${API}/ongs`;
+
+  listar(): Observable<OngResumo[]>                        { return this.http.get<OngResumo[]>(this.base); }
+  buscarPorId(id: number): Observable<Ong>                 { return this.http.get<Ong>(`${this.base}/${id}`); }
+  criar(req: CriarOngRequest): Observable<Ong>             { return this.http.post<Ong>(this.base, req); }
+  aderir(id: number): Observable<void>                     { return this.http.post<void>(`${this.base}/${id}/aderir`, {}); }
+  sair(id: number): Observable<void>                       { return this.http.delete<void>(`${this.base}/${id}/aderir`); }
+  listarMembros(id: number): Observable<OngMembro[]>       { return this.http.get<OngMembro[]>(`${this.base}/${id}/membros`); }
+  minhasOngs(): Observable<OngResumo[]>                    { return this.http.get<OngResumo[]>(`${this.base}/minhas`); }
+
+  alterarRoleMembro(ongId: number, userId: number, req: AlterarMembroRoleRequest): Observable<OngMembro> {
+    return this.http.patch<OngMembro>(`${this.base}/${ongId}/membros/${userId}/role`, req);
+  }
+}
+
+@Injectable({ providedIn: 'root' })
+export class SuperAdminOngService {
+  private http = inject(HttpClient);
+  private base = `${API}/admin/ongs`;
+
+  listarPendentes(): Observable<Ong[]> { return this.http.get<Ong[]>(`${this.base}?status=PENDENTE`); }
+  listarTodas(): Observable<Ong[]>     { return this.http.get<Ong[]>(this.base); }
+  aprovar(id: number): Observable<Ong> { return this.http.patch<Ong>(`${this.base}/${id}/status`, { status: 'ATIVA' }); }
+  rejeitar(id: number): Observable<Ong>{ return this.http.patch<Ong>(`${this.base}/${id}/status`, { status: 'INATIVA' }); }
+  inativar(id: number): Observable<Ong>{ return this.http.patch<Ong>(`${this.base}/${id}/status`, { status: 'INATIVA' }); }
 }

@@ -1,17 +1,16 @@
-import { Component, OnInit, inject, signal, ViewChild } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
-import { AnimalService, AdoptionService } from '../../core/services/api.services';
+import { Router, RouterLink } from '@angular/router';
+import { OngService } from '../../core/services/api.services';
+import { OngContextService } from '../../core/services/ong-context.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
-import { PetCardComponent } from '../../shared/components/pet-card/pet-card.component';
-import { AdoptModalComponent } from '../../shared/components/adopt-modal/adopt-modal.component';
-import { Animal } from '../../shared/models';
+import { OngResumo } from '../../shared/models';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, RouterLink, PetCardComponent, AdoptModalComponent],
+  imports: [CommonModule, RouterLink],
   template: `
     <div class="page-enter">
 
@@ -21,120 +20,96 @@ import { Animal } from '../../shared/models';
           <div class="hero-left-inner">
             <div class="tag">🐾 Conectando corações</div>
             <h1>Animais que precisam de um lar <em>cheio de amor</em></h1>
-            <p>A Conecta PET aproxima quem quer adotar de quem cuida. Seja adotante, padrinho ou voluntário — juntos salvamos mais vidas.</p>
+            <p>A Conecta PET une ONGs, adotantes e voluntários em uma única plataforma. Selecione uma ONG parceira para começar.</p>
             <div class="hero-ctas">
-              <a routerLink="/animais"   class="btn btn-teal">Adotar agora 🐾</a>
-              <a routerLink="/como-doar" class="btn btn-rose">Fazer doação ♥</a>
+              <a href="#ongs" class="btn btn-teal">Ver ONGs parceiras 🐾</a>
+              <a routerLink="/registrar-ong" class="btn btn-outline-teal">Registrar minha ONG</a>
             </div>
             <div class="hero-stats">
               <div>
-                <div class="stat-num">{{ adoptedCount() > 0 ? adoptedCount() : '–' }}</div>
-                <div class="stat-label">Adoções</div>
+                <div class="stat-num">{{ ongs().length > 0 ? ongs().length : '–' }}</div>
+                <div class="stat-label">ONGs ativas</div>
               </div>
               <div>
                 <div class="stat-num">420+</div>
                 <div class="stat-label">Parceiros</div>
               </div>
               <div>
-                <div class="stat-num">{{ availableCount() > 0 ? availableCount() : '–' }}</div>
-                <div class="stat-label">Disponíveis</div>
+                <div class="stat-num">7k+</div>
+                <div class="stat-label">Voluntários</div>
               </div>
             </div>
           </div>
         </div>
 
         <div class="hero-right">
-          <div class="hero-pet-icon">🐱</div>
-          <ul class="hero-nav-list">
-            <li><a routerLink="/quem-somos">Quem somos</a></li>
-            <li><a routerLink="/animais">Adoção</a></li>
-            <li><a routerLink="/como-doar">Doações</a></li>
-            <li><a routerLink="/seja-voluntario">Seja voluntário</a></li>
-            <li><a routerLink="/seja-padrinho">Seja padrinho</a></li>
-            <li><a routerLink="/contato">Fale Conosco</a></li>
-          </ul>
+          <div class="hero-pet-icon">🐾</div>
+          <div class="hero-right-content">
+            <h3>Como funciona</h3>
+            <div class="step"><div class="step-num">1</div><div><strong>Selecione uma ONG</strong><span>Encontre a organização mais próxima de você</span></div></div>
+            <div class="step"><div class="step-num">2</div><div><strong>Acesse os serviços</strong><span>Adote, doe, seja voluntário ou padrinho</span></div></div>
+            <div class="step"><div class="step-num">3</div><div><strong>Acompanhe tudo</strong><span>Gerencie adoções e doações no seu painel</span></div></div>
+          </div>
+          @if (!auth.isLoggedIn()) {
+            <a routerLink="/login" class="btn btn-forest btn-full">Entrar / Cadastrar</a>
+          } @else {
+            <a routerLink="/dashboard" class="btn btn-forest btn-full">Acessar meu painel</a>
+          }
         </div>
       </div>
 
-      <!-- ANIMALS -->
-      <div class="animals-banner">Animais em destaque</div>
-
-      <div class="pet-grid">
-        @if (loading()) {
-          <div class="empty-state">
-            <div class="spin-lg"></div>
+      <!-- ONG DIRECTORY -->
+      <section class="ong-directory" id="ongs">
+        <div class="dir-header">
+          <div>
+            <h2>ONGs Parceiras</h2>
+            <p>Selecione uma ONG para acessar seus serviços</p>
           </div>
-        } @else if (animals().length === 0) {
+          <a routerLink="/registrar-ong" class="btn btn-outline-teal">+ Registrar ONG</a>
+        </div>
+
+        @if (loading()) {
+          <div class="loading-state">
+            <div class="spin-lg"></div>
+            <p>Carregando ONGs...</p>
+          </div>
+        } @else if (ongs().length === 0) {
           <div class="empty-state">
-            <div class="icon">🐾</div>
-            <h3>Nenhum animal disponível</h3>
-            <p>Verifique se o servidor Java está rodando em <strong>localhost:8080</strong></p>
+            <div class="empty-icon">🏢</div>
+            <h3>Nenhuma ONG cadastrada ainda</h3>
+            <p>Seja a primeira a registrar sua ONG na plataforma Conecta PET!</p>
+            <a routerLink="/registrar-ong" class="btn btn-teal">Registrar minha ONG</a>
           </div>
         } @else {
-          @for (animal of animals(); track animal.id; let i = $index) {
-            <app-pet-card
-              [animal]="animal"
-              [index]="i"
-              mode="adopt"
-              (onAdopt)="openAdoptModal($event)" />
-          }
+          <div class="ong-grid">
+            @for (ong of ongs(); track ong.id) {
+              <div class="ong-card">
+                <div class="ong-logo">
+                  @if (ong.logoUrl) {
+                    <img [src]="ong.logoUrl" [alt]="ong.nomeFantasia" />
+                  } @else {
+                    <div class="ong-logo-placeholder">🐾</div>
+                  }
+                </div>
+                <div class="ong-body">
+                  <h3>{{ ong.nomeFantasia }}</h3>
+                  <p class="ong-razao">{{ ong.razaoSocial }}</p>
+                  <p class="ong-location">📍 {{ ong.cidade }}, {{ ong.estado }}</p>
+                  @if (ong.descricao) {
+                    <p class="ong-desc">{{ ong.descricao }}</p>
+                  }
+                  @if (ong.totalAnimais != null) {
+                    <div class="ong-stat">🐾 {{ ong.totalAnimais }} animais disponíveis</div>
+                  }
+                </div>
+                <button class="btn btn-teal btn-full" (click)="selecionar(ong)">Acessar ONG</button>
+              </div>
+            }
+          </div>
         }
-      </div>
-
-      <!-- ROLES -->
-      <div class="roles-section">
-        <div class="roles-inner">
-          <div class="profile-banner">
-            <div class="profile-avatar">{{ auth.getUserInitials() }}</div>
-            <div>
-              <div class="profile-name">
-                {{ auth.isLoggedIn() ? auth.currentUser()?.name : 'Faça login para acessar sua conta' }}
-              </div>
-              <div class="profile-sub">
-                {{ auth.isLoggedIn() ? 'Membro da comunidade Conecta PET' : 'Adote, doe ou seja voluntário na Conecta PET' }}
-              </div>
-            </div>
-            <div class="profile-action">
-              @if (auth.isLoggedIn()) {
-                <a routerLink="/dashboard" class="btn btn-outline-teal">Meu painel</a>
-              } @else {
-                <a routerLink="/login" class="btn btn-outline-teal">Entrar</a>
-              }
-            </div>
-          </div>
-
-          <div class="roles-grid">
-            <a routerLink="/seja-voluntario" class="role-card">
-              <div class="role-icon role-icon-teal">🙋</div>
-              <h3>Voluntário</h3>
-              <p>Ajude nos abrigos, transporte ou divulgação dos animais disponíveis.</p>
-              <span class="btn btn-teal btn-sm">Ver mais</span>
-            </a>
-            <a routerLink="/animais" class="role-card">
-              <div class="role-icon role-icon-rose">🏠</div>
-              <h3>Adotante</h3>
-              <p>Dê um lar definitivo a um animal que merece uma segunda chance.</p>
-              <span class="btn btn-rose btn-sm">Ver mais</span>
-            </a>
-            <a routerLink="/seja-padrinho" class="role-card">
-              <div class="role-icon role-icon-forest">⭐</div>
-              <h3>Padrinho</h3>
-              <p>Apadrinhe um pet no abrigo, contribuindo com recursos e visitas.</p>
-              <span class="btn btn-forest btn-sm">Ver mais</span>
-            </a>
-          </div>
-        </div>
-      </div>
+      </section>
 
     </div>
-
-    <!-- MODAL -->
-    <app-adopt-modal
-      #adoptModal
-      [visible]="modalVisible()"
-      [animal]="selectedAnimal()"
-      (onClose)="closeModal()"
-      (onSubmit)="submitAdoption($event)" />
   `,
   styles: [`
     .hero {
@@ -157,156 +132,139 @@ import { Animal } from '../../shared/models';
     }
     h1 em { font-style: italic; color: var(--teal-dark); }
     p { color: var(--muted); font-size: 15px; line-height: 1.85; margin-bottom: 2rem; }
-    .hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; }
+    .hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 0; }
     .hero-stats {
       display: flex; gap: 2rem; margin-top: 2.5rem;
       padding-top: 2rem; border-top: 1.5px solid var(--border);
     }
     .stat-num   { font-family: 'Lora', serif; font-size: 1.7rem; color: var(--teal); font-weight: 600; }
     .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+
     .hero-right {
-      background: var(--teal);
+      background: var(--forest);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      padding: 3rem; position: relative; overflow: hidden;
-    }
-    .hero-right::before {
-      content: ''; position: absolute; width: 340px; height: 340px;
-      border-radius: 50%; background: rgba(46,74,46,0.05); top: -80px; right: -80px;
+      padding: 3rem; gap: 1.5rem;
     }
     .hero-pet-icon {
-      width: 160px; height: 160px; background: rgba(46,74,46,0.1);
+      width: 100px; height: 100px; background: rgba(168,216,168,0.15);
       border-radius: 50%; display: flex; align-items: center; justify-content: center;
-      font-size: 6rem; margin-bottom: 2rem; position: relative; z-index: 1;
-      border: 3px solid rgba(46,74,46,0.2);
+      font-size: 3.5rem; border: 2px solid rgba(168,216,168,0.2);
     }
-    .hero-nav-list {
-      list-style: none; width: 100%; max-width: 280px; position: relative; z-index: 1;
+    .hero-right-content { width: 100%; max-width: 320px; }
+    .hero-right-content h3 {
+      font-family: 'Lora', serif; color: white; font-size: 1.2rem;
+      margin-bottom: 1.25rem; text-align: center;
     }
-    .hero-nav-list li { border-bottom: 1px solid rgba(46,74,46,0.15); }
-    .hero-nav-list li:last-child { border-bottom: none; }
-    .hero-nav-list a {
-      display: block; color: var(--teal-dark); text-decoration: none;
-      font-size: 15px; font-weight: 600; padding: 0.85rem 1rem;
-      transition: background 0.2s, padding-left 0.2s; border-radius: var(--r-sm);
+    .step {
+      display: flex; gap: 14px; align-items: flex-start;
+      padding: .9rem 0; border-bottom: 1px solid rgba(255,255,255,0.08);
     }
-    .hero-nav-list a:hover { background: rgba(46,74,46,0.08); padding-left: 1.5rem; }
+    .step:last-child { border-bottom: none; }
+    .step-num {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--teal); color: var(--forest);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 800; flex-shrink: 0;
+    }
+    .step strong { display: block; color: white; font-size: 13.5px; }
+    .step span   { display: block; color: rgba(255,255,255,0.55); font-size: 12px; margin-top: 2px; }
+    .btn-full { width: 100%; max-width: 320px; justify-content: center; }
 
+    .ong-directory {
+      padding: 4rem 2rem;
+      background: var(--cream);
+    }
+    .dir-header {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      max-width: 1200px; margin: 0 auto 2.5rem; flex-wrap: wrap; gap: 1rem;
+    }
+    .dir-header h2 {
+      font-family: 'Lora', serif; font-size: 1.8rem; color: var(--forest); margin-bottom: .25rem;
+    }
+    .dir-header p { color: var(--muted); font-size: 14px; margin: 0; }
+
+    .loading-state {
+      text-align: center; padding: 4rem 2rem;
+      p { margin-top: 1rem; color: var(--muted); }
+    }
     .spin-lg {
       width: 36px; height: 36px; border: 3px solid rgba(168,216,168,0.4);
       border-top-color: var(--teal-dark); border-radius: 50%;
-      animation: spin 0.7s linear infinite; margin: 3rem auto;
+      animation: spin 0.7s linear infinite; margin: 0 auto;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .roles-section { background: white; border-top: 1px solid var(--border); padding: 4rem 2rem; }
-    .roles-inner   { max-width: 1200px; margin: 0 auto; }
+    .empty-state {
+      text-align: center; padding: 5rem 2rem; max-width: 480px; margin: 0 auto;
+      .empty-icon { font-size: 4rem; margin-bottom: 1rem; }
+      h3 { font-family: 'Lora', serif; color: var(--forest); margin-bottom: .5rem; }
+      p  { color: var(--muted); margin-bottom: 1.5rem; }
+    }
 
-    .profile-banner {
-      background: var(--rose-light); border-radius: var(--r); padding: 1.25rem 1.5rem;
-      display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;
-      border: 1.5px solid rgba(247,184,208,0.5);
+    .ong-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.25rem;
+      max-width: 1200px; margin: 0 auto;
     }
-    .profile-avatar {
-      width: 52px; height: 52px; background: var(--rose); border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      color: white; font-weight: 800; font-size: 1.1rem; flex-shrink: 0;
+    .ong-card {
+      background: white; border-radius: var(--r); border: 1.5px solid var(--border);
+      padding: 1.5rem; display: flex; flex-direction: column; gap: .75rem;
+      transition: transform .2s, box-shadow .2s;
     }
-    .profile-name { font-weight: 700; font-size: 1rem; color: var(--forest); }
-    .profile-sub  { font-size: 13px; color: var(--muted); }
-    .profile-action { margin-left: auto; }
+    .ong-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.08); }
 
-    .roles-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.25rem;
+    .ong-logo {
+      width: 64px; height: 64px; border-radius: 14px;
+      background: var(--teal-light); display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+      img { width: 100%; height: 100%; object-fit: cover; }
     }
-    .role-card {
-      background: var(--cream); border-radius: var(--r); border: 1.5px solid var(--border);
-      padding: 1.5rem; transition: transform 0.2s, box-shadow 0.2s; text-decoration: none; display: block;
-    }
-    .role-card:hover { transform: translateY(-4px); box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
-    .role-card h3 { font-weight: 800; font-size: 1rem; color: var(--forest); margin-bottom: 0.4rem; }
-    .role-card p  { font-size: 12.5px; color: var(--muted); line-height: 1.6; margin-bottom: 1rem; }
+    .ong-logo-placeholder { font-size: 2rem; }
 
-    .role-icon {
-      width: 52px; height: 52px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.5rem; margin-bottom: 1rem;
-    }
-    .role-icon-teal   { background: var(--teal-light); }
-    .role-icon-rose   { background: var(--rose-light); }
-    .role-icon-forest { background: #E8F0EB; }
+    .ong-body { flex: 1; }
+    .ong-body h3 { font-weight: 800; font-size: 1rem; color: var(--forest); margin-bottom: 2px; }
+    .ong-razao   { font-size: 11px; color: var(--muted); margin-bottom: .5rem; }
+    .ong-location{ font-size: 13px; color: var(--muted); margin-bottom: .5rem; }
+    .ong-desc    { font-size: 13px; color: var(--text); line-height: 1.6; margin-bottom: .5rem;
+                   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .ong-stat    { font-size: 12px; color: var(--teal-dark); font-weight: 600; }
 
     @media (max-width: 900px) {
       .hero { grid-template-columns: 1fr; min-height: auto; }
-      .hero-right { min-height: 50vw; }
-      .hero-nav-list { display: none; }
+      .hero-right { padding: 2.5rem 1.5rem; }
     }
     @media (max-width: 580px) {
       .hero-left { padding: 3rem 1.5rem; }
+      .ong-directory { padding: 3rem 1rem; }
     }
   `]
 })
 export class HomeComponent implements OnInit {
-  private animalSvc   = inject(AnimalService);
-  private adoptionSvc = inject(AdoptionService);
-  private toast       = inject(ToastService);
-  auth                = inject(AuthService);
+  private ongSvc  = inject(OngService);
+  private ongCtx  = inject(OngContextService);
+  private router  = inject(Router);
+  private toast   = inject(ToastService);
+  auth            = inject(AuthService);
 
-  animals        = signal<Animal[]>([]);
-  loading        = signal(true);
-  availableCount = signal(0);
-  adoptedCount   = signal(0);
-  modalVisible   = signal(false);
-  selectedAnimal = signal<Animal | null>(null);
-
-  @ViewChild('adoptModal') adoptModal?: AdoptModalComponent;
+  ongs    = signal<OngResumo[]>([]);
+  loading = signal(true);
 
   ngOnInit(): void {
-    this.animalSvc.list({ status: 'DISPONIVEL' }).subscribe({
-      next: (a: any) => {
-        this.animals.set(a.slice(0, 6));
-        this.availableCount.set(a.length);
+    this.ongSvc.listar().subscribe({
+      next: (list: any) => {
+        this.ongs.set(Array.isArray(list) ? list : []);
         this.loading.set(false);
       },
       error: () => {
         this.loading.set(false);
-        this.toast.error('Não foi possível carregar os animais. Verifique se o servidor Java está rodando.');
+        this.toast.error('Não foi possível carregar as ONGs. Verifique se o servidor está rodando.');
       }
     });
-
-    this.animalSvc.list({ status: 'ADOTADO' }).subscribe({
-      next: (a: any) => this.adoptedCount.set(a.length),
-      error: () => {}
-    });
   }
 
-  openAdoptModal(animal: Animal): void {
-    if (!this.auth.isLoggedIn()) {
-      this.toast.info('Faça login para solicitar adoção.');
-      return;
-    }
-    this.selectedAnimal.set(animal);
-    this.modalVisible.set(true);
-  }
-
-  closeModal(): void {
-    this.modalVisible.set(false);
-    this.selectedAnimal.set(null);
-    this.adoptModal?.setLoading(false);
-  }
-
-  submitAdoption(data: { message?: string }): void {
-    const animal = this.selectedAnimal();
-    if (!animal) return;
-    this.adoptModal?.setLoading(true);
-    this.adoptionSvc.request({ animalId: animal.id, ...data }).subscribe({
-      next: () => {
-        this.toast.success('Solicitação de adoção enviada com sucesso! 🐾');
-        this.closeModal();
-      },
-      error: (err: any) => {
-        this.toast.handleError(err);
-        this.adoptModal?.setLoading(false);
-      }
-    });
+  selecionar(ong: OngResumo): void {
+    this.ongCtx.selectOng(ong);
+    this.router.navigate(['/dashboard']);
   }
 }
