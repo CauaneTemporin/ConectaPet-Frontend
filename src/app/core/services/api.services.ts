@@ -14,7 +14,7 @@ import {
   FollowUpVisit, FollowUpVisitRequest,
   Denuncia, DenunciaRequest, DenunciaStatusRequest,
   UserAdmin, AlterarRoleRequest,
-  Ong, OngResumo, OngMembro, CriarOngRequest, AlterarMembroRoleRequest
+  Ong, OngResumo, OngMembro, CriarOngRequest, AlterarMembroRoleRequest, AtualizarPerfilOngRequest
 } from '../../shared/models';
 
 const API = environment.apiUrl;
@@ -225,6 +225,10 @@ export class SheltersService {
 export class OccurrenceService {
   constructor(private http: HttpClient) {}
 
+  mine(): Observable<Occurrence[]> {
+    return this.http.get<Occurrence[]>(`${API}/occurrences/mine`);
+  }
+
   report(req: OccurrenceRequest): Observable<Occurrence> {
     return this.http.post<Occurrence>(`${API}/occurrences`, req);
   }
@@ -280,6 +284,18 @@ export class OngService {
 
   alterarRoleMembro(ongId: number, userId: number, req: AlterarMembroRoleRequest): Observable<OngMembro> {
     return this.http.patch<OngMembro>(`${this.base}/${ongId}/membros/${userId}/role`, req);
+  }
+
+  aprovarMembro(ongId: number, userId: number): Observable<OngMembro> {
+    return this.http.patch<OngMembro>(`${this.base}/${ongId}/membros/${userId}/aprovar`, {});
+  }
+
+  rejeitarMembro(ongId: number, userId: number): Observable<OngMembro> {
+    return this.http.patch<OngMembro>(`${this.base}/${ongId}/membros/${userId}/rejeitar`, {});
+  }
+
+  atualizarPerfil(ongId: number, req: AtualizarPerfilOngRequest): Observable<Ong> {
+    return this.http.patch<Ong>(`${this.base}/${ongId}/perfil`, req);
   }
 }
 

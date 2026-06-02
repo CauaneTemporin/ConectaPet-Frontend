@@ -7,11 +7,12 @@ import { AuthService } from '../../core/services/auth.service';
 import { OngContextService } from '../../core/services/ong-context.service';
 import { ToastService } from '../../core/services/toast.service';
 import { CriarOngRequest } from '../../shared/models';
+import { AddressFormComponent, EnderecoFormData } from '../../shared/components/address-form/address-form.component';
 
 @Component({
   selector: 'app-registrar-ong',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, AddressFormComponent],
   template: `
     <div class="page-enter reg-page">
 
@@ -42,23 +43,36 @@ import { CriarOngRequest } from '../../shared/models';
 
             <div class="form-grid">
               <div class="form-field full">
-                <label class="form-label">Nome completo *</label>
+                <label class="form-label">Nome completo <span class="required">*</span></label>
                 <input class="form-input" type="text" [(ngModel)]="adminNome" placeholder="Seu nome completo" />
               </div>
 
               <div class="form-field">
-                <label class="form-label">E-mail de acesso *</label>
-                <input class="form-input" type="email" [(ngModel)]="adminEmail" placeholder="seu@email.com" />
+                <label class="form-label">E-mail de acesso <span class="required">*</span></label>
+                <input class="form-input"
+                  [class.input-error]="adminEmailTouched && !isEmailValid(adminEmail)"
+                  type="email" [(ngModel)]="adminEmail"
+                  placeholder="seu@email.com"
+                  (blur)="adminEmailTouched = true" />
+                @if (adminEmailTouched && !isEmailValid(adminEmail)) {
+                  <span class="field-msg">E-mail inválido.</span>
+                }
               </div>
 
               <div class="form-field">
-                <label class="form-label">Senha *</label>
+                <label class="form-label">Senha <span class="required">*</span></label>
                 <input class="form-input" type="password" [(ngModel)]="adminSenha" placeholder="Mínimo 6 caracteres" />
               </div>
 
               <div class="form-field full">
-                <label class="form-label">Confirmar senha *</label>
-                <input class="form-input" type="password" [(ngModel)]="adminSenhaConfirm" placeholder="Repita a senha" />
+                <label class="form-label">Confirmar senha <span class="required">*</span></label>
+                <input class="form-input"
+                  [class.input-error]="adminSenhaConfirm.length > 0 && adminSenha !== adminSenhaConfirm"
+                  type="password" [(ngModel)]="adminSenhaConfirm"
+                  placeholder="Repita a senha" />
+                @if (adminSenhaConfirm.length > 0 && adminSenha !== adminSenhaConfirm) {
+                  <span class="field-msg">As senhas não coincidem.</span>
+                }
               </div>
             </div>
 
@@ -69,56 +83,52 @@ import { CriarOngRequest } from '../../shared/models';
 
           <div class="form-grid">
             <div class="form-field">
-              <label class="form-label">CNPJ *</label>
-              <input class="form-input" type="text" [(ngModel)]="form.cnpj"
+              <label class="form-label">CNPJ <span class="required">*</span></label>
+              <input class="form-input"
+                [class.input-error]="cnpjTouched && !isCnpjFormatValid(form.cnpj)"
+                type="text" [(ngModel)]="form.cnpj"
                 placeholder="XX.XXX.XXX/XXXX-XX" maxlength="18"
-                (input)="maskCnpj($event)" />
+                (input)="maskCnpj($event)"
+                (blur)="cnpjTouched = true" />
+              @if (cnpjTouched && !isCnpjFormatValid(form.cnpj)) {
+                <span class="field-msg">CNPJ incompleto (XX.XXX.XXX/XXXX-XX).</span>
+              }
             </div>
 
             <div class="form-field">
-              <label class="form-label">E-mail da ONG *</label>
-              <input class="form-input" type="email" [(ngModel)]="form.email"
-                placeholder="contato@suaong.org.br" />
+              <label class="form-label">E-mail da ONG <span class="required">*</span></label>
+              <input class="form-input"
+                [class.input-error]="ongEmailTouched && !isEmailValid(form.email)"
+                type="email" [(ngModel)]="form.email"
+                placeholder="contato@suaong.org.br"
+                (blur)="ongEmailTouched = true" />
+              @if (ongEmailTouched && !isEmailValid(form.email)) {
+                <span class="field-msg">E-mail inválido.</span>
+              }
             </div>
 
             <div class="form-field full">
-              <label class="form-label">Razão Social *</label>
+              <label class="form-label">Razão Social <span class="required">*</span></label>
               <input class="form-input" type="text" [(ngModel)]="form.razaoSocial"
                 placeholder="Razão social conforme CNPJ" />
             </div>
 
             <div class="form-field full">
-              <label class="form-label">Nome Fantasia *</label>
+              <label class="form-label">Nome Fantasia <span class="required">*</span></label>
               <input class="form-input" type="text" [(ngModel)]="form.nomeFantasia"
                 placeholder="Nome pelo qual a ONG é conhecida" />
             </div>
 
             <div class="form-field">
-              <label class="form-label">Cidade *</label>
-              <input class="form-input" type="text" [(ngModel)]="form.cidade"
-                placeholder="São Paulo" />
-            </div>
-
-            <div class="form-field">
-              <label class="form-label">Estado *</label>
-              <select class="form-input" [(ngModel)]="form.estado">
-                <option value="">Selecione...</option>
-                @for (uf of ufs; track uf) {
-                  <option [value]="uf">{{ uf }}</option>
-                }
-              </select>
-            </div>
-
-            <div class="form-field">
               <label class="form-label">Telefone</label>
-              <input class="form-input" type="text" [(ngModel)]="form.telefone"
-                placeholder="(11) 99999-9999" />
+              <input class="form-input" type="text"
+                [ngModel]="form.telefone" (input)="form.telefone = maskPhone($event)"
+                placeholder="(11) 99999-9999" maxlength="15" />
             </div>
 
-            <div class="form-field">
-              <label class="form-label">Endereço</label>
-              <input class="form-input" type="text" [(ngModel)]="form.endereco"
-                placeholder="Rua, número, bairro" />
+            <div class="form-field full">
+              <label class="form-label" style="margin-bottom:.5rem">Localização e Endereço <span class="required">*</span></label>
+              <app-address-form [(value)]="enderecoOng"></app-address-form>
             </div>
 
             <div class="form-field full">
@@ -200,7 +210,9 @@ import { CriarOngRequest } from '../../shared/models';
       font-family: 'Nunito', sans-serif; font-size: 14px; background: white;
       resize: vertical; box-sizing: border-box;
       &:focus { outline: none; border-color: var(--teal); }
+      &.input-error { border-color: #ef4444; }
     }
+    .field-msg { font-size: 11px; color: #ef4444; margin-top: 3px; display: block; }
 
     .form-info {
       background: #eff6ff; border-radius: var(--r-sm); padding: .75rem 1rem;
@@ -239,16 +251,38 @@ export class RegistrarOngComponent {
   adminSenha        = '';
   adminSenhaConfirm = '';
 
-  form: CriarOngRequest = {
-    cnpj: '', razaoSocial: '', nomeFantasia: '',
-    email: '', cidade: '', estado: '',
-    telefone: '', endereco: '', descricao: ''
-  };
+  // Validation touch state
+  adminEmailTouched = false;
+  cnpjTouched       = false;
+  ongEmailTouched   = false;
 
-  readonly ufs = [
-    'AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG',
-    'PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'
-  ];
+  isEmailValid(email: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test((email ?? '').trim());
+  }
+
+  isCnpjFormatValid(cnpj: string): boolean {
+    return /^\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}$/.test(cnpj ?? '');
+  }
+
+  maskPhone(event: Event): string {
+    const input = event.target as HTMLInputElement;
+    let v = input.value.replace(/\D/g, '').slice(0, 11);
+    if (v.length > 10) {
+      v = v.replace(/^(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+    } else if (v.length > 6) {
+      v = v.replace(/^(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
+    } else if (v.length > 2) {
+      v = v.replace(/^(\d{2})(\d{0,5})/, '($1) $2');
+    } else {
+      v = v.replace(/^(\d{0,2})/, '($1');
+    }
+    input.value = v;
+    return v;
+  }
+
+  form = { cnpj: '', razaoSocial: '', nomeFantasia: '', email: '', telefone: '', descricao: '' };
+
+  enderecoOng: EnderecoFormData = { estado: '', cidade: '', cep: '', endereco: '', complemento: '' };
 
   maskCnpj(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -262,16 +296,35 @@ export class RegistrarOngComponent {
   }
 
   submit(): void {
-    const { cnpj, razaoSocial, nomeFantasia, email, cidade, estado } = this.form;
-    if (!cnpj || !razaoSocial || !nomeFantasia || !email || !cidade || !estado) {
+    this.cnpjTouched       = true;
+    this.ongEmailTouched   = true;
+    this.adminEmailTouched = true;
+
+    const { cnpj, razaoSocial, nomeFantasia, email } = this.form;
+    const { estado, cidade, cep, endereco, complemento } = this.enderecoOng;
+
+    if (!cnpj || !razaoSocial || !nomeFantasia || !email || !estado || !cidade) {
       this.toast.error('Preencha todos os campos obrigatórios da ONG.');
       return;
     }
+    if (!this.isCnpjFormatValid(cnpj)) {
+      this.toast.error('CNPJ inválido (XX.XXX.XXX/XXXX-XX).');
+      return;
+    }
+    if (!this.isEmailValid(email)) {
+      this.toast.error('E-mail da ONG inválido.');
+      return;
+    }
+
+    const enderecoFull = endereco
+      ? (complemento ? `${endereco}, ${complemento}` : endereco)
+      : undefined;
 
     const payload: CriarOngRequest = {
       cnpj, razaoSocial, nomeFantasia, email, cidade, estado,
+      cep:       cep       || undefined,
       telefone:  this.form.telefone?.trim()  || undefined,
-      endereco:  this.form.endereco?.trim()  || undefined,
+      endereco:  enderecoFull,
       descricao: this.form.descricao?.trim() || undefined
     };
 

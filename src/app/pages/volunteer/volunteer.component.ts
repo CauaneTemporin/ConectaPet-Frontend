@@ -192,7 +192,9 @@ import { Volunteer, SkillEntry, VolunteerRequest } from '../../shared/models';
       p  { font-size: 15px; color: rgba(255,255,255,0.75); max-width: 520px; margin: 0 auto 1rem; line-height: 1.85; }
     }
     .hero-login-hint { font-size: 13px !important; color: rgba(255,255,255,0.5) !important; }
-    .vol-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.25rem; margin-bottom: 3rem; }
+    .vol-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; margin-bottom: 3rem; }
+    @media (max-width: 768px) { .vol-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 480px) { .vol-grid { grid-template-columns: 1fr; } }
     .vol-card { background: white; border-radius: var(--r); border: 2px solid var(--border); padding: 1.75rem; text-align: center; cursor: pointer; transition: transform .2s, border-color .2s; &:hover { transform: translateY(-4px); border-color: var(--teal); } &.selected { border-color: var(--teal); background: var(--teal-light); } }
     .vol-emoji { font-size: 2.2rem; margin-bottom: .75rem; }
     .vol-card h3 { font-weight: 800; color: var(--forest); margin-bottom: .4rem; font-size: .95rem; }
@@ -269,11 +271,12 @@ export class VolunteerComponent implements OnInit {
   readonly weekDays = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 
   readonly allSkills = [
-    { value: 'fotografia',     label: 'Fotografia',     emoji: '📸', desc: 'Fotografe os animais para aumentar as chances de adoção.' },
-    { value: 'transporte',     label: 'Transporte',     emoji: '🚗', desc: 'Leve animais do abrigo ao veterinário ou para adotantes.' },
-    { value: 'lar_temporario', label: 'Lar temporário', emoji: '🏠', desc: 'Abrigue um animal enquanto ele espera por adoção definitiva.' },
-    { value: 'divulgacao',     label: 'Divulgação',     emoji: '📢', desc: 'Compartilhe os animais nas redes e ajude a encontrar famílias.' },
-    { value: 'veterinaria',    label: 'Veterinária',    emoji: '🩺', desc: 'Ofereça atendimento veterinário ou auxílio técnico.' },
+    { value: 'fotografia',       label: 'Fotografia',       emoji: '📸', desc: 'Fotografe os animais para aumentar as chances de adoção.' },
+    { value: 'transporte',       label: 'Transporte',       emoji: '🚗', desc: 'Leve animais do abrigo ao veterinário ou para adotantes.' },
+    { value: 'lar_temporario',   label: 'Lar temporário',   emoji: '🏠', desc: 'Abrigue um animal enquanto ele espera por adoção definitiva.' },
+    { value: 'divulgacao',       label: 'Divulgação',       emoji: '📢', desc: 'Compartilhe os animais nas redes e ajude a encontrar famílias.' },
+    { value: 'veterinaria',      label: 'Veterinária',      emoji: '🩺', desc: 'Ofereça atendimento veterinário ou auxílio técnico.' },
+    { value: 'servidor_publico', label: 'Servidor Público', emoji: '🏛️', desc: 'Utilize sua posição para apoiar causas, fiscalizar e articular políticas de proteção animal.' },
   ];
 
   ngOnInit(): void {

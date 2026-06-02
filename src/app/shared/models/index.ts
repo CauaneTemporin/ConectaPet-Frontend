@@ -106,18 +106,20 @@ export interface AdminStats {
 }
 
 // ── OCCURRENCE ────────────────────────────────
-export type OccurrenceType   = 'abandono' | 'maus_tratos' | 'suspeita' | 'outro';
+export type OccurrenceType   = 'abandono' | 'maus_tratos' | 'suspeita' | 'comercio_ilegal' | 'falta_saneamento' | 'outro';
 export type OccurrenceStatus = 'pendente' | 'em_analise' | 'resolvido' | 'arquivado';
 
 export interface Occurrence {
   id: number;
   type: OccurrenceType;
+  titulo?: string;
   description: string;
-  address?: string;
+  estado?: string; cidade?: string; cep?: string; complemento?: string; endereco?: string;
   animalDescription?: string;
+  animalIdentification?: string;
   reporterName?: string;
   reporterEmail?: string;
-  anonymous: boolean;
+  anonymous?: boolean;
   userId?: number;
   status: OccurrenceStatus;
   adminNotes?: string;
@@ -126,13 +128,14 @@ export interface Occurrence {
 
 export interface OccurrenceRequest {
   type: OccurrenceType;
+  titulo?: string;
   description: string;
-  address?: string;
+  estado?: string; cidade?: string; cep?: string; complemento?: string; endereco?: string;
   animalDescription?: string;
+  animalIdentification?: string;
   reporterName?: string;
   reporterEmail?: string;
-  anonymous: boolean;
-  userId?: number;
+  anonymous?: boolean;
 }
 
 // ── FOLLOW-UP VISIT ────────────────────────────
@@ -168,7 +171,8 @@ export type DenunciaStatus    = 'PENDENTE' | 'EM_ANALISE' | 'RESOLVIDA' | 'ARQUI
 export interface Denuncia {
   id: number;
   userId: number; userName: string;
-  titulo: string; descricao: string; endereco?: string;
+  titulo: string; descricao: string;
+  estado?: string; cidade?: string; cep?: string; complemento?: string; endereco?: string;
   categoria: DenunciaCategoria;
   status: DenunciaStatus;
   observacaoGestor?: string;
@@ -177,7 +181,8 @@ export interface Denuncia {
 }
 export interface DenunciaRequest {
   titulo: string; descricao: string;
-  endereco?: string; categoria: DenunciaCategoria;
+  estado?: string; cidade?: string; cep?: string; complemento?: string; endereco?: string;
+  categoria: DenunciaCategoria;
 }
 export interface DenunciaStatusRequest {
   status: DenunciaStatus; observacaoGestor?: string;
@@ -194,17 +199,43 @@ export interface Ong {
   nomeFantasia: string;
   email: string;
   telefone?: string;
+  cep?: string;
   endereco?: string;
   cidade: string;
   estado: string;
   descricao?: string;
+  historia?: string;
+  missao?: string;
   logoUrl?: string;
+  facebook?: string;
+  whatsapp?: string;
+  instagram?: string;
+  youtube?: string;
+  tiktok?: string;
+  telegram?: string;
   status: OngStatus;
   createdAt: string;
 }
 
+export interface AtualizarPerfilOngRequest {
+  descricao?: string;
+  historia?: string;
+  missao?: string;
+  logoUrl?: string;
+  telefone?: string;
+  cep?: string;
+  endereco?: string;
+  facebook?: string;
+  whatsapp?: string;
+  instagram?: string;
+  youtube?: string;
+  tiktok?: string;
+  telegram?: string;
+}
+
 export interface OngResumo {
   id: number;
+  cnpj: string;
   nomeFantasia: string;
   razaoSocial: string;
   cidade: string;
@@ -215,12 +246,15 @@ export interface OngResumo {
   myRole?: OngMembroRole;
 }
 
+export type OngMembroStatus = 'PENDENTE' | 'ATIVO' | 'REJEITADO';
+
 export interface OngMembro {
   id: number;
   userId: number;
   userName: string;
   userEmail: string;
   role: OngMembroRole;
+  status: OngMembroStatus;
   joinedAt: string;
 }
 
@@ -230,6 +264,7 @@ export interface CriarOngRequest {
   nomeFantasia: string;
   email: string;
   telefone?: string;
+  cep?: string;
   endereco?: string;
   cidade: string;
   estado: string;

@@ -23,7 +23,11 @@ export class AuthService {
   readonly isGestorPublico  = computed(() => this.currentUser()?.role === 'GESTOR_PUBLICO');
   readonly isGestorOrAdmin  = computed(() => this.isAdmin() || this.isGestorPublico());
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(private http: HttpClient, private router: Router) {
+    if (this.token()) {
+      this.getProfile().subscribe({ error: () => {} });
+    }
+  }
 
   login(req: LoginRequest): Observable<AuthResponse> {
     return this.http.post<AuthResponse>(`${this.api}/auth/login`, req).pipe(

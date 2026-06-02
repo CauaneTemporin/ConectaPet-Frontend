@@ -96,7 +96,7 @@ import { FollowUpVisit, FollowUpStatus } from '../../../../shared/models';
             <button class="modal-close" (click)="closeForm()">✕</button>
           </div>
           <div class="form-field">
-            <label class="form-label">Nome do animal *</label>
+            <label class="form-label">Nome do animal <span class="required">*</span></label>
             <input class="form-input" [(ngModel)]="formData.animalName" placeholder="Ex: Rex" />
           </div>
           <div class="two-col">
@@ -111,7 +111,7 @@ import { FollowUpVisit, FollowUpStatus } from '../../../../shared/models';
           </div>
           <div class="two-col">
             <div class="form-field">
-              <label class="form-label">Data agendada *</label>
+              <label class="form-label">Data agendada <span class="required">*</span></label>
               <input class="form-input" type="date" [(ngModel)]="formData.scheduledDate" />
             </div>
             <div class="form-field">
@@ -149,7 +149,7 @@ import { FollowUpVisit, FollowUpStatus } from '../../../../shared/models';
             <button class="modal-close" (click)="closeResult()">✕</button>
           </div>
           <div class="form-field">
-            <label class="form-label">Resultado da visita *</label>
+            <label class="form-label">Resultado da visita <span class="required">*</span></label>
             <textarea class="form-input" [(ngModel)]="resultText" rows="4"
               placeholder="Descreva as condições do animal, do lar, observações gerais..."></textarea>
           </div>

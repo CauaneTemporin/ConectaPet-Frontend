@@ -6,11 +6,12 @@ import { AuthService } from '../../core/services/auth.service';
 import { OngService } from '../../core/services/api.services';
 import { OngContextService } from '../../core/services/ong-context.service';
 import { ToastService } from '../../core/services/toast.service';
+import { AddressFormComponent, EnderecoFormData } from '../../shared/components/address-form/address-form.component';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, AddressFormComponent],
   template: `
     <div class="login-overlay page-enter">
 
@@ -58,18 +59,46 @@ import { ToastService } from '../../core/services/toast.service';
                   <input class="form-input-underline" type="text" [(ngModel)]="regLast" placeholder="Sobrenome">
                 </div>
               </div>
-              <label class="form-label-forest">Login:</label>
-              <input class="form-input-underline" type="email"    [(ngModel)]="regEmail"   placeholder="seu@email.com">
-              <label class="form-label-forest">Senha:</label>
-              <input class="form-input-underline" type="password" [(ngModel)]="regPw"      placeholder="Mínimo 6 caracteres">
-              <label class="form-label-forest">Telefone:</label>
-              <input class="form-input-underline" type="text"     [(ngModel)]="regPhone"   placeholder="(11) 98765-4321">
-              <label class="form-label-forest">CPF:</label>
-              <input class="form-input-underline" type="text"     [(ngModel)]="regCpf"     placeholder="000.000.000-00">
-              <label class="form-label-forest">Endereço:</label>
-              <input class="form-input-underline" type="text"     [(ngModel)]="regAddress" placeholder="Rua das Flores, 123">
 
-              <button class="btn btn-teal btn-full" style="padding:.7rem" (click)="doRegister()" [disabled]="loading()">
+              <label class="form-label-forest">Login:</label>
+              <input class="form-input-underline"
+                [class.field-error]="emailTouched && !isEmailValid(regEmail)"
+                type="email" [(ngModel)]="regEmail"
+                placeholder="seu@email.com"
+                (blur)="emailTouched = true">
+              @if (emailTouched && !isEmailValid(regEmail)) {
+                <span class="field-msg">E-mail inválido.</span>
+              }
+
+              <label class="form-label-forest">Senha:</label>
+              <input class="form-input-underline"
+                [class.field-error]="pwTouched && regPw.length > 0 && regPw.length < 6"
+                type="password" [(ngModel)]="regPw"
+                placeholder="Mínimo 6 caracteres"
+                (blur)="pwTouched = true">
+              @if (pwTouched && regPw.length > 0 && regPw.length < 6) {
+                <span class="field-msg">Mínimo 6 caracteres.</span>
+              }
+
+              <label class="form-label-forest">Telefone:</label>
+              <input class="form-input-underline" type="text"
+                [ngModel]="regPhone" (input)="regPhone = maskPhone($event)"
+                placeholder="(11) 98765-4321" maxlength="15">
+
+              <label class="form-label-forest">CPF:</label>
+              <input class="form-input-underline"
+                [class.field-error]="cpfTouched && regCpf.length > 0 && !isCpfFormatValid(regCpf)"
+                type="text"
+                [ngModel]="regCpf" (input)="regCpf = maskCpf($event)"
+                placeholder="000.000.000-00" maxlength="14"
+                (blur)="cpfTouched = true">
+              @if (cpfTouched && regCpf.length > 0 && !isCpfFormatValid(regCpf)) {
+                <span class="field-msg">CPF incompleto (###.###.###-##).</span>
+              }
+
+              <app-address-form [(value)]="regEndereco"></app-address-form>
+
+              <button class="btn btn-teal btn-full" style="padding:.7rem;margin-top:1.25rem" (click)="doRegister()" [disabled]="loading()">
                 @if (loading()) { <span class="spin"></span> } Criar conta gratuita
               </button>
             </div>
@@ -121,7 +150,7 @@ import { ToastService } from '../../core/services/toast.service';
       background: var(--teal-light);
       border-radius: 24px;
       padding: 2.5rem;
-      width: 100%; max-width: 380px;
+      width: 100%; max-width: 480px;
       border: 1px solid rgba(168,216,168,0.4);
     }
 
@@ -173,6 +202,9 @@ import { ToastService } from '../../core/services/toast.service';
     }
 
     .two-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+
+    .field-error { border-bottom-color: #ef4444 !important; }
+    .field-msg { display: block; font-size: 11px; color: #ef4444; margin-top: 2px; margin-bottom: 4px; }
 
     .login-actions { display: flex; gap: 12px; margin-top: 1rem; .btn { flex: 1; justify-content: center; } }
 
@@ -239,7 +271,47 @@ export class LoginComponent {
 
   // Register fields
   regName = ''; regLast = ''; regEmail = ''; regPw = '';
-  regPhone = ''; regCpf = ''; regAddress = '';
+  regPhone = ''; regCpf = '';
+  regEndereco: EnderecoFormData = { estado: '', cidade: '', cep: '', endereco: '', complemento: '' };
+
+  // Validation touch state
+  emailTouched = false;
+  pwTouched    = false;
+  cpfTouched   = false;
+
+  isEmailValid(email: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
+  }
+
+  isCpfFormatValid(cpf: string): boolean {
+    return /^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(cpf);
+  }
+
+  maskPhone(event: Event): string {
+    const input = event.target as HTMLInputElement;
+    let v = input.value.replace(/\D/g, '').slice(0, 11);
+    if (v.length > 10) {
+      v = v.replace(/^(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+    } else if (v.length > 6) {
+      v = v.replace(/^(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
+    } else if (v.length > 2) {
+      v = v.replace(/^(\d{2})(\d{0,5})/, '($1) $2');
+    } else {
+      v = v.replace(/^(\d{0,2})/, '($1');
+    }
+    input.value = v;
+    return v;
+  }
+
+  maskCpf(event: Event): string {
+    const input = event.target as HTMLInputElement;
+    let v = input.value.replace(/\D/g, '').slice(0, 11);
+    if (v.length > 9) v = v.replace(/^(\d{3})(\d{3})(\d{3})(\d{0,2})/, '$1.$2.$3-$4');
+    else if (v.length > 6) v = v.replace(/^(\d{3})(\d{3})(\d{0,3})/, '$1.$2.$3');
+    else if (v.length > 3) v = v.replace(/^(\d{3})(\d{0,3})/, '$1.$2');
+    input.value = v;
+    return v;
+  }
 
   doLogin(): void {
     if (!this.loginEmail || !this.loginPw) { this.toast.error('Preencha e-mail e senha.'); return; }
@@ -254,11 +326,20 @@ export class LoginComponent {
   }
 
   doRegister(): void {
+    this.emailTouched = true;
+    this.pwTouched    = true;
+    this.cpfTouched   = true;
+
     const name = `${this.regName} ${this.regLast}`.trim();
-    if (!name || !this.regEmail || !this.regPw) { this.toast.error('Preencha todos os campos.'); return; }
+    if (!name) { this.toast.error('Preencha nome e sobrenome.'); return; }
+    if (!this.regEmail || !this.isEmailValid(this.regEmail)) { this.toast.error('E-mail inválido.'); return; }
     if (this.regPw.length < 6) { this.toast.error('Senha deve ter no mínimo 6 caracteres.'); return; }
+    if (this.regCpf && !this.isCpfFormatValid(this.regCpf)) { this.toast.error('CPF inválido (###.###.###-##).'); return; }
     this.loading.set(true);
-    this.authSvc.register({ name, email: this.regEmail, password: this.regPw, phone: this.regPhone, cpf: this.regCpf, address: this.regAddress }).subscribe({
+    const { estado, cidade, cep, endereco, complemento } = this.regEndereco;
+    const addressStr = [endereco, complemento, cidade && estado ? `${cidade}/${estado}` : '', cep]
+      .filter(Boolean).join(' - ');
+    this.authSvc.register({ name, email: this.regEmail, password: this.regPw, phone: this.regPhone, cpf: this.regCpf, address: addressStr || undefined }).subscribe({
       next: () => { this.toast.success('Conta criada com sucesso! 🐾'); this.autoSelectOngAndNavigate(); },
       error: (err: any) => { this.toast.handleError(err); this.loading.set(false); }
     });

@@ -1,17 +1,26 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { OngContextService } from '../../../core/services/ong-context.service';
 
 @Component({
   selector: 'app-footer',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, CommonModule],
   template: `
     <footer>
       <div class="footer-inner">
         <div class="footer-brand">
-          <div class="footer-brand-name">Conecta PET <span>Adoção &amp; Doação</span></div>
+          <div class="footer-brand-name">
+            Conecta PET
+            @if (ongCtx.selectedOng(); as ong) {
+              <span>{{ ong.nomeFantasia }}</span>
+            }
+          </div>
           <p>ONG dedicada a conectar animais abandonados a famílias amorosas em todo o Brasil.</p>
-          <p class="cnpj">CNPJ 00.000.000/0001-00</p>
+          @if (ongCtx.selectedOng(); as ong) {
+            <p class="cnpj">CNPJ {{ ong.cnpj }}</p>
+          }
         </div>
         <div class="footer-col">
           <h4>Adoção</h4>
@@ -116,4 +125,6 @@ import { RouterLink } from '@angular/router';
     }
   `]
 })
-export class FooterComponent {}
+export class FooterComponent {
+  ongCtx = inject(OngContextService);
+}

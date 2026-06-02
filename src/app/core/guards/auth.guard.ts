@@ -1,5 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
+import { Observable, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 import { ToastService } from '../services/toast.service';
 import { OngContextService } from '../services/ong-context.service';
@@ -27,16 +29,26 @@ export const adminGuard: CanActivateFn = () => {
   return false;
 };
 
-export const gestorGuard: CanActivateFn = () => {
+export const gestorGuard: CanActivateFn = (): boolean | Observable<boolean> => {
   const auth   = inject(AuthService);
   const router = inject(Router);
   const toast  = inject(ToastService);
 
   if (auth.isGestorOrAdmin()) return true;
 
-  toast.error('Acesso restrito a gestores públicos e administradores.');
-  router.navigate(['/']);
-  return false;
+  return auth.getProfile().pipe(
+    map(() => {
+      if (auth.isGestorOrAdmin()) return true;
+      toast.error('Acesso restrito a gestores públicos e administradores.');
+      router.navigate(['/']);
+      return false;
+    }),
+    catchError(() => {
+      toast.error('Acesso restrito a gestores públicos e administradores.');
+      router.navigate(['/']);
+      return of(false);
+    })
+  );
 };
 
 export const guestGuard: CanActivateFn = () => {
@@ -61,7 +73,7 @@ export const ongContextGuard: CanActivateFn = () => {
   return false;
 };
 
-export const ongAdminGuard: CanActivateFn = () => {
+export const ongAdminGuard: CanActivateFn = (): boolean | Observable<boolean> => {
   const auth   = inject(AuthService);
   const ongCtx = inject(OngContextService);
   const router = inject(Router);
@@ -69,7 +81,17 @@ export const ongAdminGuard: CanActivateFn = () => {
 
   if (auth.isAdmin() || ongCtx.isOngAdmin()) return true;
 
-  toast.error('Acesso restrito a administradores da ONG.');
-  router.navigate(['/dashboard']);
-  return false;
+  return auth.getProfile().pipe(
+    map(() => {
+      if (auth.isAdmin() || ongCtx.isOngAdmin()) return true;
+      toast.error('Acesso restrito a administradores da ONG.');
+      router.navigate(['/dashboard']);
+      return false;
+    }),
+    catchError(() => {
+      toast.error('Acesso restrito a administradores da ONG.');
+      router.navigate(['/dashboard']);
+      return of(false);
+    })
+  );
 };

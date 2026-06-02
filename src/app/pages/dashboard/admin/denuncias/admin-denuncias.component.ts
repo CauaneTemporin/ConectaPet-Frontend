@@ -43,7 +43,7 @@ const CAT_ICONS: Record<string, string> = {
     } @else {
       <div class="den-list">
         @for (den of items(); track den.id) {
-          <div class="den-card" [class.unread]="den.status === 'PENDENTE'">
+          <div class="den-card" [class.unread]="den.status === 'PENDENTE'" (click)="openDetail(den)">
             <div class="den-top">
               <div class="den-cat">
                 <span class="cat-icon">{{ catIcon(den.categoria) }}</span>
@@ -57,32 +57,87 @@ const CAT_ICONS: Record<string, string> = {
                 <span class="date-text">{{ den.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
               </div>
             </div>
-
-            <p class="den-desc">{{ den.descricao }}</p>
-
-            <div class="den-details">
-              @if (den.endereco) {
-                <div class="detail-item"><span class="detail-icon">📍</span> {{ den.endereco }}</div>
-              }
-              <div class="detail-item"><span class="detail-icon">👤</span> {{ den.userName }}</div>
-            </div>
-
-            @if (den.observacaoGestor) {
-              <div class="gestor-note">
-                <strong>Observação:</strong> {{ den.observacaoGestor }}
-                @if (den.analisadoPorNome) {
-                  <span class="muted"> — por {{ den.analisadoPorNome }}</span>
-                }
-              </div>
-            }
-
-            <div class="den-actions">
-              @if (den.status !== 'RESOLVIDA' && den.status !== 'ARQUIVADA') {
-                <button class="btn btn-sm btn-teal" (click)="openUpdate(den)">Atualizar status</button>
-              }
+            <p class="den-desc-preview">{{ den.descricao }}</p>
+            <div class="den-footer">
+              <span class="detail-item"><span class="detail-icon">👤</span> {{ den.userName }}</span>
+              @if (den.cidade) { <span class="detail-item"><span class="detail-icon">📍</span> {{ den.cidade }}/{{ den.estado }}</span> }
+              <span class="click-hint">Ver detalhes →</span>
             </div>
           </div>
         }
+      </div>
+    }
+
+    <!-- Modal detalhe -->
+    @if (detailTarget()) {
+      <div class="modal-backdrop" (click)="closeDetail()">
+        <div class="modal-box modal-lg" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <div class="modal-title-wrap">
+              <span class="cat-icon">{{ catIcon(detailTarget()!.categoria) }}</span>
+              <div>
+                <h3>{{ detailTarget()!.titulo }}</h3>
+                <span class="cat-label">{{ catLabel(detailTarget()!.categoria) }}</span>
+              </div>
+            </div>
+            <button class="modal-close" (click)="closeDetail()">✕</button>
+          </div>
+
+          <div class="detail-body">
+            <div class="detail-meta-row">
+              <span class="status-pill" [ngClass]="'pill-den-' + detailTarget()!.status">{{ statusLabel(detailTarget()!.status) }}</span>
+              <span class="detail-date">{{ detailTarget()!.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+              <span class="detail-user">👤 {{ detailTarget()!.userName }}</span>
+            </div>
+
+            <div class="detail-section">
+              <div class="detail-section-title">Descrição</div>
+              <p class="detail-desc">{{ detailTarget()!.descricao }}</p>
+            </div>
+
+            @if (detailTarget()!.estado || detailTarget()!.cidade || detailTarget()!.cep || detailTarget()!.endereco) {
+              <div class="detail-section">
+                <div class="detail-section-title">Localização</div>
+                <div class="addr-grid">
+                  @if (detailTarget()!.estado) {
+                    <div class="addr-item"><span class="addr-label">Estado</span><span>{{ detailTarget()!.estado }}</span></div>
+                  }
+                  @if (detailTarget()!.cidade) {
+                    <div class="addr-item"><span class="addr-label">Cidade</span><span>{{ detailTarget()!.cidade }}</span></div>
+                  }
+                  @if (detailTarget()!.cep) {
+                    <div class="addr-item"><span class="addr-label">CEP</span><span>{{ detailTarget()!.cep }}</span></div>
+                  }
+                  @if (detailTarget()!.endereco) {
+                    <div class="addr-item addr-full"><span class="addr-label">Endereço</span><span>{{ detailTarget()!.endereco }}</span></div>
+                  }
+                  @if (detailTarget()!.complemento) {
+                    <div class="addr-item addr-full"><span class="addr-label">Complemento</span><span>{{ detailTarget()!.complemento }}</span></div>
+                  }
+                </div>
+              </div>
+            }
+
+            @if (detailTarget()!.observacaoGestor) {
+              <div class="detail-section">
+                <div class="detail-section-title">Observação do gestor</div>
+                <div class="gestor-note">
+                  {{ detailTarget()!.observacaoGestor }}
+                  @if (detailTarget()!.analisadoPorNome) {
+                    <span class="muted"> — {{ detailTarget()!.analisadoPorNome }}</span>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn btn-outline-teal" (click)="closeDetail()">Fechar</button>
+            @if (detailTarget()!.status !== 'RESOLVIDA' && detailTarget()!.status !== 'ARQUIVADA') {
+              <button class="btn btn-teal" (click)="openUpdate(detailTarget()!); closeDetail()">Atualizar status</button>
+            }
+          </div>
+        </div>
       </div>
     }
 
@@ -131,8 +186,11 @@ const CAT_ICONS: Record<string, string> = {
     .empty-state { text-align: center; padding: 4rem 2rem; .icon { font-size: 3rem; margin-bottom: 1rem; } h3 { font-family: 'Lora', serif; color: var(--forest); margin-bottom: .5rem; } p { color: var(--muted); font-size: 14px; } }
 
     .den-list { display: flex; flex-direction: column; gap: 1rem; }
-    .den-card { background: white; border-radius: var(--r); border: 1.5px solid var(--border); padding: 1.25rem; }
+    .den-card { background: white; border-radius: var(--r); border: 1.5px solid var(--border); padding: 1.25rem; cursor: pointer; transition: box-shadow .15s, border-color .15s; &:hover { border-color: var(--teal); box-shadow: 0 2px 12px rgba(0,0,0,.07); } }
     .den-card.unread { border-color: #f59e0b; background: #fffbeb; }
+    .den-desc-preview { font-size: 13.5px; color: var(--muted); line-height: 1.6; margin: .5rem 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .den-footer { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-top: .5rem; }
+    .click-hint { margin-left: auto; font-size: 12px; color: var(--teal-dark); font-weight: 700; }
 
     .den-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: .75rem; flex-wrap: wrap; gap: .5rem; }
     .den-cat { display: flex; align-items: flex-start; gap: 10px; }
@@ -157,8 +215,23 @@ const CAT_ICONS: Record<string, string> = {
     .pill-den-RESOLVIDA  { background: #d1fae5; color: #065f46; padding: 2px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; }
     .pill-den-ARQUIVADA  { background: #f3f4f6; color: #6b7280; padding: 2px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; }
 
-    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1rem; }
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1rem; overflow-y: auto; }
     .modal-box { background: white; border-radius: var(--r); padding: 2rem; max-width: 440px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,.2); }
+    .modal-lg  { max-width: 620px; }
+    .modal-title-wrap { display: flex; align-items: flex-start; gap: 10px; flex: 1; h3 { font-family: 'Lora', serif; font-size: 1.05rem; color: var(--forest); margin: 0 0 2px; } }
+
+    .detail-body { display: flex; flex-direction: column; gap: 1.25rem; margin: 1.25rem 0; }
+    .detail-meta-row { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+    .detail-date { font-size: 12px; color: var(--muted); }
+    .detail-user { font-size: 13px; color: var(--muted); }
+    .detail-section-title { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: .5rem; }
+    .detail-desc { font-size: 14px; color: var(--text); line-height: 1.75; white-space: pre-wrap; margin: 0; }
+
+    .addr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem .75rem; }
+    .addr-item { display: flex; flex-direction: column; gap: 2px; }
+    .addr-item.addr-full { grid-column: 1 / -1; }
+    .addr-label { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+    .addr-item span:last-child { font-size: 13.5px; color: var(--forest); font-weight: 600; }
     .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; h3 { font-family: 'Lora', serif; font-size: 1.1rem; color: var(--forest); } }
     .modal-close { background: none; border: none; font-size: 16px; cursor: pointer; color: var(--muted); padding: 4px 8px; border-radius: var(--r-sm); &:hover { background: var(--cream); } }
     .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
@@ -177,6 +250,7 @@ export class AdminDenunciasComponent implements OnInit {
   loading      = signal(true);
   saving       = signal(false);
   filterStatus = '';
+  detailTarget = signal<Denuncia | null>(null);
   updateTarget = signal<Denuncia | null>(null);
   updateStatus: DenunciaStatus = 'EM_ANALISE';
   updateNotes  = '';
@@ -192,6 +266,9 @@ export class AdminDenunciasComponent implements OnInit {
   }
 
   pendingCount(): number { return this.items().filter(i => i.status === 'PENDENTE').length; }
+
+  openDetail(den: Denuncia): void  { this.detailTarget.set(den); }
+  closeDetail(): void              { this.detailTarget.set(null); }
 
   openUpdate(den: Denuncia): void {
     this.updateStatus = den.status;

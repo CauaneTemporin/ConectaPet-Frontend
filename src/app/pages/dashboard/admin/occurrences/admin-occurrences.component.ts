@@ -57,8 +57,12 @@ const TYPE_ICONS: Record<string, string> = {
             <p class="occ-desc">{{ occ.description }}</p>
 
             <div class="occ-details">
-              @if (occ.address) {
-                <div class="detail-item"><span class="detail-icon">📍</span> {{ occ.address }}</div>
+              @if (occ.cidade || occ.estado || occ.endereco) {
+                <div class="detail-item">
+                  <span class="detail-icon">📍</span>
+                  @if (occ.cidade) { {{ occ.cidade }}@if (occ.estado) {/{{ occ.estado }}} }
+                  @if (occ.endereco) { — {{ occ.endereco }} }
+                </div>
               }
               @if (occ.animalDescription) {
                 <div class="detail-item"><span class="detail-icon">🐾</span> {{ occ.animalDescription }}</div>

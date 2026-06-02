@@ -1,151 +1,118 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { DenunciaService } from '../../../core/services/api.services';
-import { ToastService } from '../../../core/services/toast.service';
-import { Denuncia, DenunciaCategoria, DenunciaRequest } from '../../../shared/models';
+import { RouterLink } from '@angular/router';
+import { OccurrenceService } from '../../../core/services/api.services';
+import { Occurrence } from '../../../shared/models';
 
-const CAT_LABELS: Record<string, string> = {
-  MAUS_TRATOS: 'Maus-tratos', ABANDONO: 'Abandono',
-  COMERCIO_ILEGAL: 'Comércio Ilegal', FALTA_DE_SANEAMENTO: 'Falta de Saneamento', OUTROS: 'Outros'
+const TYPE_LABELS: Record<string, string> = {
+  abandono: 'Abandono', maus_tratos: 'Maus-tratos', suspeita: 'Suspeita',
+  comercio_ilegal: 'Comércio Ilegal', falta_saneamento: 'Falta Saneamento', outro: 'Outro'
+};
+const TYPE_ICONS: Record<string, string> = {
+  abandono: '😢', maus_tratos: '⚠️', suspeita: '🔍',
+  comercio_ilegal: '🚫', falta_saneamento: '🧹', outro: '📋'
+};
+const STATUS_LABELS: Record<string, string> = {
+  pendente: 'Pendente', em_analise: 'Em análise', resolvido: 'Resolvido', arquivado: 'Arquivado'
 };
 
 @Component({
   selector: 'app-my-denuncias',
   standalone: true,
-  imports: [CommonModule, FormsModule, DatePipe],
+  imports: [CommonModule, DatePipe, RouterLink],
   template: `
     <div class="panel-header">
-      <h2 class="dash-title">Minhas Denúncias</h2>
-      <button class="btn btn-teal" (click)="showForm = !showForm">
-        {{ showForm ? '✕ Cancelar' : '+ Nova Denúncia' }}
-      </button>
-    </div>
-
-    @if (showForm) {
-      <div class="form-card">
-        <h3 class="form-title">Registrar Nova Denúncia</h3>
-        <div class="form-grid">
-          <div class="form-field full">
-            <label class="form-label">Título *</label>
-            <input class="form-input" [(ngModel)]="form.titulo" placeholder="Resumo da denúncia" />
-          </div>
-          <div class="form-field">
-            <label class="form-label">Categoria *</label>
-            <select class="form-input" [(ngModel)]="form.categoria">
-              <option value="">Selecione...</option>
-              <option value="MAUS_TRATOS">Maus-tratos</option>
-              <option value="ABANDONO">Abandono</option>
-              <option value="COMERCIO_ILEGAL">Comércio Ilegal</option>
-              <option value="FALTA_DE_SANEAMENTO">Falta de Saneamento</option>
-              <option value="OUTROS">Outros</option>
-            </select>
-          </div>
-          <div class="form-field">
-            <label class="form-label">Endereço / Local</label>
-            <input class="form-input" [(ngModel)]="form.endereco" placeholder="Rua, bairro, cidade..." />
-          </div>
-          <div class="form-field full">
-            <label class="form-label">Descrição detalhada *</label>
-            <textarea class="form-input" [(ngModel)]="form.descricao" rows="4"
-              placeholder="Descreva o que foi observado, quando, e qualquer outra informação relevante..."></textarea>
-          </div>
-        </div>
-        <div class="form-actions">
-          <button class="btn btn-outline-teal" (click)="showForm = false">Cancelar</button>
-          <button class="btn btn-teal" (click)="submit()" [disabled]="saving()">
-            @if (saving()) { <span class="spin-inline"></span> } Enviar Denúncia
-          </button>
-        </div>
+      <div>
+        <h2 class="dash-title">Minhas Ocorrências</h2>
+        <p class="panel-sub">Acompanhe o status das ocorrências que você registrou.</p>
       </div>
-    }
+      <a routerLink="/ocorrencias" class="btn btn-teal">+ Nova Ocorrência</a>
+    </div>
 
     @if (loading()) {
       <div class="loading-row"><div class="spin-big"></div></div>
     } @else if (items().length === 0) {
       <div class="empty-state">
         <div class="icon">🚨</div>
-        <h3>Nenhuma denúncia registrada</h3>
-        <p>Clique em "Nova Denúncia" para registrar uma ocorrência.</p>
+        <h3>Nenhuma ocorrência registrada</h3>
+        <p>Clique em "Nova Ocorrência" para registrar um relato de abandono ou maus-tratos.</p>
+        <a routerLink="/ocorrencias" class="btn btn-teal" style="margin-top:1.25rem">Registrar ocorrência</a>
       </div>
     } @else {
-      <div class="den-list">
-        @for (den of items(); track den.id) {
-          <div class="den-card">
-            <div class="den-top">
-              <div>
-                <strong class="den-titulo">{{ den.titulo }}</strong>
-                <span class="den-cat">{{ catLabel(den.categoria) }}</span>
+      <div class="occ-list">
+        @for (occ of items(); track occ.id) {
+          <div class="occ-card" [class.card-pending]="occ.status === 'pendente'">
+            <div class="occ-top">
+              <div class="occ-type">
+                <span class="type-icon">{{ typeIcon(occ.type) }}</span>
+                <div>
+                  <strong>{{ occ.titulo || typeLabel(occ.type) }}</strong>
+                  @if (occ.titulo) { <span class="type-sub">{{ typeLabel(occ.type) }}</span> }
+                </div>
               </div>
-              <span class="status-pill" [ngClass]="'pill-den-' + den.status">{{ statusLabel(den.status) }}</span>
+              <span class="status-pill" [ngClass]="'pill-' + occ.status">{{ statusLabel(occ.status) }}</span>
             </div>
-            <p class="den-desc">{{ den.descricao }}</p>
-            @if (den.endereco) {
-              <div class="den-loc">📍 {{ den.endereco }}</div>
-            }
-            @if (den.observacaoGestor) {
-              <div class="gestor-note">
-                <strong>Resposta do gestor:</strong> {{ den.observacaoGestor }}
-                @if (den.analisadoPorNome) { <span class="muted"> — {{ den.analisadoPorNome }}</span> }
+
+            <p class="occ-desc">{{ occ.description }}</p>
+
+            @if (occ.cidade || occ.estado || occ.endereco) {
+              <div class="occ-loc">
+                📍
+                @if (occ.cidade) { {{ occ.cidade }}@if (occ.estado) {/{{ occ.estado }}} }
+                @if (occ.endereco) { — {{ occ.endereco }} }
               </div>
             }
-            <div class="den-date">{{ den.createdAt | date:'dd/MM/yyyy HH:mm' }}</div>
+
+            @if (occ.adminNotes) {
+              <div class="admin-note">
+                <strong>Resposta:</strong> {{ occ.adminNotes }}
+              </div>
+            }
+
+            <div class="occ-date">{{ occ.createdAt | date:'dd/MM/yyyy HH:mm' }}</div>
           </div>
         }
       </div>
     }
   `,
   styles: [`
-    .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+    .panel-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap; }
     .dash-title { font-family: 'Lora', serif; color: var(--forest); font-size: 1.5rem; }
-
-    .form-card { background: white; border-radius: var(--r); border: 1.5px solid var(--border); padding: 1.5rem; margin-bottom: 2rem; }
-    .form-title { font-family: 'Lora', serif; color: var(--forest); font-size: 1.1rem; margin-bottom: 1.25rem; }
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    .form-field { display: flex; flex-direction: column; }
-    .form-field.full { grid-column: 1 / -1; }
-    .form-label { font-size: 13px; font-weight: 600; color: var(--forest); margin-bottom: 5px; }
-    .form-input { padding: .6rem .85rem; border: 1.5px solid var(--border); border-radius: var(--r-sm); font-family: 'Nunito', sans-serif; font-size: 14px; background: white; resize: vertical; }
-    .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 1.25rem; }
+    .panel-sub  { color: var(--muted); font-size: 13px; margin-top: 2px; }
 
     .loading-row { display: flex; justify-content: center; padding: 3rem; }
     .spin-big { width: 32px; height: 32px; border: 3px solid rgba(168,216,168,.4); border-top-color: var(--teal-dark); border-radius: 50%; animation: spin .7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .empty-state { text-align: center; padding: 4rem 2rem; .icon { font-size: 3rem; margin-bottom: 1rem; } h3 { font-family: 'Lora', serif; color: var(--forest); margin-bottom: .5rem; } p { color: var(--muted); font-size: 14px; } }
+    .empty-state { text-align: center; padding: 3rem 2rem; .icon { font-size: 3rem; margin-bottom: 1rem; } h3 { font-family: 'Lora', serif; color: var(--forest); margin-bottom: .5rem; } p { color: var(--muted); font-size: 14px; } }
 
-    .den-list { display: flex; flex-direction: column; gap: 1rem; }
-    .den-card { background: white; border-radius: var(--r); border: 1.5px solid var(--border); padding: 1.25rem; }
-    .den-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: .75rem; gap: .5rem; }
-    .den-titulo { display: block; font-size: .95rem; color: var(--forest); }
-    .den-cat { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
-    .den-desc { font-size: 14px; color: var(--text); line-height: 1.7; margin-bottom: .5rem; white-space: pre-wrap; }
-    .den-loc { font-size: 13px; color: var(--muted); margin-bottom: .5rem; }
-    .den-date { font-size: 12px; color: var(--muted); text-align: right; margin-top: .5rem; }
+    .occ-list { display: flex; flex-direction: column; gap: 1rem; }
+    .occ-card { background: white; border-radius: var(--r); border: 1.5px solid var(--border); padding: 1.25rem; }
+    .card-pending { border-color: #f59e0b; background: #fffbeb; }
 
-    .gestor-note { background: #eff6ff; border-left: 3px solid #3b82f6; padding: .6rem .9rem; border-radius: 0 var(--r-sm) var(--r-sm) 0; font-size: 13px; color: var(--text); margin-bottom: .5rem; .muted { color: var(--muted); } }
+    .occ-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: .75rem; gap: .5rem; flex-wrap: wrap; }
+    .occ-type { display: flex; align-items: flex-start; gap: 10px; }
+    .type-icon { font-size: 1.3rem; margin-top: 2px; }
+    .occ-type strong { display: block; font-size: .95rem; color: var(--forest); }
+    .type-sub { font-size: 12px; color: var(--muted); }
 
-    .status-pill { padding: 2px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; white-space: nowrap; }
-    .pill-den-PENDENTE   { background: #fef3c7; color: #92400e; }
-    .pill-den-EM_ANALISE { background: #dbeafe; color: #1e40af; }
-    .pill-den-RESOLVIDA  { background: #d1fae5; color: #065f46; }
-    .pill-den-ARQUIVADA  { background: #f3f4f6; color: #6b7280; }
+    .occ-desc { font-size: 14px; color: var(--text); line-height: 1.7; margin-bottom: .5rem; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+    .occ-loc { font-size: 13px; color: var(--muted); margin-bottom: .5rem; }
+    .admin-note { background: #eff6ff; border-left: 3px solid #3b82f6; padding: .6rem .9rem; border-radius: 0 var(--r-sm) var(--r-sm) 0; font-size: 13px; color: var(--text); margin-bottom: .5rem; }
+    .occ-date { font-size: 12px; color: var(--muted); text-align: right; }
 
-    .spin-inline { display: inline-block; width: 12px; height: 12px; border: 2px solid rgba(0,0,0,.15); border-top-color: currentColor; border-radius: 50%; animation: spin .7s linear infinite; }
-
-    @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+    .status-pill { padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .pill-pendente   { background: #fef3c7; color: #92400e; }
+    .pill-em_analise { background: #dbeafe; color: #1e40af; }
+    .pill-resolvido  { background: #d1fae5; color: #065f46; }
+    .pill-arquivado  { background: #f3f4f6; color: #6b7280; }
   `]
 })
 export class MyDenunciasComponent implements OnInit {
-  private svc   = inject(DenunciaService);
-  private toast = inject(ToastService);
+  private svc = inject(OccurrenceService);
 
-  items   = signal<Denuncia[]>([]);
+  items   = signal<Occurrence[]>([]);
   loading = signal(true);
-  saving  = signal(false);
-  showForm = false;
-
-  form: DenunciaRequest = { titulo: '', descricao: '', endereco: '', categoria: '' as DenunciaCategoria };
 
   ngOnInit(): void { this.load(); }
 
@@ -157,35 +124,7 @@ export class MyDenunciasComponent implements OnInit {
     });
   }
 
-  submit(): void {
-    if (!this.form.titulo.trim() || !this.form.descricao.trim() || !this.form.categoria) {
-      this.toast.error('Preencha título, categoria e descrição.');
-      return;
-    }
-    this.saving.set(true);
-    const payload: DenunciaRequest = {
-      titulo: this.form.titulo.trim(),
-      descricao: this.form.descricao.trim(),
-      categoria: this.form.categoria,
-      endereco: this.form.endereco?.trim() || undefined
-    };
-    this.svc.criar(payload).subscribe({
-      next: () => {
-        this.toast.success('Denúncia registrada com sucesso!');
-        this.showForm = false;
-        this.form = { titulo: '', descricao: '', endereco: '', categoria: '' as DenunciaCategoria };
-        this.saving.set(false);
-        this.load();
-      },
-      error: (err: any) => { this.toast.handleError(err); this.saving.set(false); }
-    });
-  }
-
-  catLabel(c: string): string { return CAT_LABELS[c] ?? c; }
-  statusLabel(s: string): string {
-    const map: Record<string, string> = {
-      PENDENTE: 'Pendente', EM_ANALISE: 'Em análise', RESOLVIDA: 'Resolvida', ARQUIVADA: 'Arquivada'
-    };
-    return map[s] ?? s;
-  }
+  typeLabel(t: string): string  { return TYPE_LABELS[t]  ?? t; }
+  typeIcon(t: string): string   { return TYPE_ICONS[t]   ?? '📋'; }
+  statusLabel(s: string): string { return STATUS_LABELS[s] ?? s; }
 }

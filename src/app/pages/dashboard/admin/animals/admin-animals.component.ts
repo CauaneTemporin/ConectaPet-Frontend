@@ -19,9 +19,9 @@ import { Animal, AnimalRequest } from '../../../../shared/models';
       <div class="animal-form">
         <h3>{{ editingId() ? 'Editar animal' : 'Novo animal' }}</h3>
         <div class="form-row">
-          <div class="form-field"><label class="form-label">Nome *</label><input class="form-input" [(ngModel)]="form.name" placeholder="Nome do animal"></div>
+          <div class="form-field"><label class="form-label">Nome <span class="required">*</span></label><input class="form-input" [(ngModel)]="form.name" placeholder="Nome do animal"></div>
           <div class="form-field">
-            <label class="form-label">Espécie *</label>
+            <label class="form-label">Espécie <span class="required">*</span></label>
             <select class="form-input" [(ngModel)]="form.species">
               <option value="CACHORRO">Cachorro</option>
               <option value="GATO">Gato</option>

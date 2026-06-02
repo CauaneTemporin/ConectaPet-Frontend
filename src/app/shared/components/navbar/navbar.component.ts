@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { AuthService } from '../../../core/services/auth.service';
+import { OngContextService } from '../../../core/services/ong-context.service';
 
 @Component({
   selector: 'app-navbar',
@@ -14,7 +15,9 @@ import { AuthService } from '../../../core/services/auth.service';
           <div class="logo-icon">🐾</div>
           <div class="logo-text">
             Conecta PET
-            <span>Adoção &amp; Doação</span>
+            @if (ongCtx.selectedOng(); as ong) {
+              <span>{{ ong.nomeFantasia }}</span>
+            }
           </div>
         </a>
       </div>
@@ -139,5 +142,6 @@ import { AuthService } from '../../../core/services/auth.service';
   `]
 })
 export class NavbarComponent {
-  auth = inject(AuthService);
+  auth   = inject(AuthService);
+  ongCtx = inject(OngContextService);
 }
