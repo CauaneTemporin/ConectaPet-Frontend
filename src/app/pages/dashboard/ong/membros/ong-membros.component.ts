@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { OngService } from '../../../../core/services/api.services';
+import { OngService, AdminService } from '../../../../core/services/api.services';
 import { OngContextService } from '../../../../core/services/ong-context.service';
 import { AuthService } from '../../../../core/services/auth.service';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -99,10 +99,13 @@ import { OngMembro, OngMembroRole } from '../../../../shared/models';
                     <td class="col-email">{{ m.userEmail }}</td>
                     <td class="col-role">
                       <span class="role-pill" [ngClass]="'pill-' + m.role">{{ roleLabel(m.role) }}</span>
+                      @if (m.userGlobalRole === 'GESTOR_PUBLICO') {
+                        <span class="role-pill pill-GESTOR_PUBLICO">Gestor Público</span>
+                      }
                     </td>
                     <td class="col-date">{{ m.joinedAt | date:'dd/MM/yyyy' }}</td>
                     <td class="col-actions">
-                      @if (m.userId !== auth.currentUser()?.id) {
+                      @if (m.userId !== auth.currentUser()?.id || (auth.isAdmin() || ongCtx.isOngAdmin())) {
                         <button class="btn btn-sm btn-outline-teal" (click)="openEdit(m)">Alterar perfil</button>
                       }
                     </td>
@@ -123,19 +126,36 @@ import { OngMembro, OngMembroRole } from '../../../../shared/models';
             <h3>Alterar perfil — {{ editTarget()!.userName }}</h3>
             <button class="modal-close" (click)="closeEdit()">✕</button>
           </div>
-          <div class="form-field">
-            <label class="form-label">Novo perfil</label>
-            <div class="role-options">
-              <button class="role-option" [class.selected]="editRole === 'ONG_ADMIN'" (click)="editRole = 'ONG_ADMIN'">
-                <strong>🛡️ ONG Admin</strong>
-                <span>Pode gerenciar animais, adoções e membros</span>
-              </button>
-              <button class="role-option" [class.selected]="editRole === 'ONG_MEMBRO'" (click)="editRole = 'ONG_MEMBRO'">
-                <strong>👤 ONG Membro</strong>
-                <span>Acesso padrão aos serviços da ONG</span>
-              </button>
+          @if (editTarget()?.userId !== auth.currentUser()?.id) {
+            <div class="form-field">
+              <label class="form-label">Perfil na ONG</label>
+              <div class="role-options">
+                <button class="role-option" [class.selected]="editRole === 'ONG_ADMIN'" (click)="editRole = 'ONG_ADMIN'">
+                  <strong>🛡️ ONG Admin</strong>
+                  <span>Pode gerenciar animais, adoções e membros</span>
+                </button>
+                <button class="role-option" [class.selected]="editRole === 'ONG_MEMBRO'" (click)="editRole = 'ONG_MEMBRO'">
+                  <strong>👤 ONG Membro</strong>
+                  <span>Acesso padrão aos serviços da ONG</span>
+                </button>
+              </div>
             </div>
-          </div>
+          }
+          @if (auth.isAdmin() || ongCtx.isOngAdmin()) {
+            <div class="form-field">
+              <label class="form-label">Permissão global da plataforma</label>
+              <div class="role-options">
+                <button class="role-option" [class.selected]="editGlobalRole === 'GESTOR_PUBLICO'" (click)="editGlobalRole = 'GESTOR_PUBLICO'">
+                  <strong>🏛️ Gestor Público</strong>
+                  <span>Pode gerenciar denúncias e ocorrências da plataforma</span>
+                </button>
+                <button class="role-option" [class.selected]="editGlobalRole === 'USER'" (click)="editGlobalRole = 'USER'">
+                  <strong>👤 Usuário padrão</strong>
+                  <span>Sem permissões globais adicionais</span>
+                </button>
+              </div>
+            </div>
+          }
           <div class="modal-actions">
             <button class="btn btn-outline-teal" (click)="closeEdit()">Cancelar</button>
             <button class="btn btn-teal" (click)="saveRole()" [disabled]="saving()">
@@ -197,8 +217,9 @@ import { OngMembro, OngMembroRole } from '../../../../shared/models';
     .col-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 
     .role-pill { padding: 2px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; }
-    .pill-ONG_ADMIN  { background: #fefce8; color: #854d0e; }
-    .pill-ONG_MEMBRO { background: #eff6ff; color: #1e40af; }
+    .pill-ONG_ADMIN      { background: #fefce8; color: #854d0e; }
+    .pill-ONG_MEMBRO     { background: #eff6ff; color: #1e40af; }
+    .pill-GESTOR_PUBLICO { background: #f0fdf4; color: #166534; margin-left: 4px; }
 
     .btn-sm { padding: .3rem .75rem; font-size: 12px; }
     .btn-danger {
@@ -230,10 +251,11 @@ import { OngMembro, OngMembroRole } from '../../../../shared/models';
   `]
 })
 export class OngMembrosComponent implements OnInit {
-  private svc   = inject(OngService);
-  private toast = inject(ToastService);
-  ongCtx        = inject(OngContextService);
-  auth          = inject(AuthService);
+  private svc        = inject(OngService);
+  private adminSvc   = inject(AdminService);
+  private toast      = inject(ToastService);
+  ongCtx             = inject(OngContextService);
+  auth               = inject(AuthService);
 
   items        = signal<OngMembro[]>([]);
   loading      = signal(true);
@@ -241,6 +263,7 @@ export class OngMembrosComponent implements OnInit {
   processingId = signal<number | null>(null);
   editTarget   = signal<OngMembro | null>(null);
   editRole: OngMembroRole = 'ONG_MEMBRO';
+  editGlobalRole: 'USER' | 'GESTOR_PUBLICO' = 'USER';
 
   pendentes = computed(() => this.items().filter(m => m.status === 'PENDENTE'));
   ativos    = computed(() => this.items().filter(m => m.status === 'ATIVO'));
@@ -287,22 +310,53 @@ export class OngMembrosComponent implements OnInit {
     });
   }
 
-  openEdit(m: OngMembro): void { this.editRole = m.role; this.editTarget.set(m); }
-  closeEdit(): void             { this.editTarget.set(null); }
+  openEdit(m: OngMembro): void {
+    this.editRole = m.role;
+    this.editGlobalRole = m.userGlobalRole === 'GESTOR_PUBLICO' ? 'GESTOR_PUBLICO' : 'USER';
+    this.editTarget.set(m);
+  }
+  closeEdit(): void { this.editTarget.set(null); }
 
   saveRole(): void {
     const m = this.editTarget();
     const ongId = this.ongCtx.selectedOngId();
     if (!m || !ongId) return;
     this.saving.set(true);
+
+    const isSelf = m.userId === this.auth.currentUser()?.id;
+    const canChangeGlobalRole = this.auth.isAdmin() || this.ongCtx.isOngAdmin();
+
+    const saveGlobalRole$ = canChangeGlobalRole
+      ? this.adminSvc.alterarRole(m.userId, { role: this.editGlobalRole })
+      : null;
+
+    const finish = () => {
+      this.toast.success('Perfil do membro atualizado.');
+      this.closeEdit();
+      this.saving.set(false);
+      this.load(ongId);
+    };
+    const handleError = (err: any) => { this.toast.handleError(err); this.saving.set(false); };
+
+    if (isSelf) {
+      if (saveGlobalRole$) {
+        saveGlobalRole$.subscribe({ next: finish, error: handleError });
+      } else {
+        this.saving.set(false);
+        this.closeEdit();
+      }
+      return;
+    }
+
     this.svc.alterarRoleMembro(ongId, m.userId, { role: this.editRole }).subscribe({
       next: () => {
-        this.toast.success('Perfil do membro atualizado.');
-        this.closeEdit();
-        this.saving.set(false);
-        this.load(ongId);
+        if (saveGlobalRole$) {
+          saveGlobalRole$.subscribe({ next: finish, error: handleError });
+        } else {
+          finish();
+        }
       },
-      error: (err: any) => { this.toast.handleError(err); this.saving.set(false); }
+      error: handleError
     });
   }
 

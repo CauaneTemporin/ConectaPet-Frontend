@@ -59,7 +59,7 @@ import { OngContextService } from '../../core/services/ong-context.service';
           <a class="dash-nav-btn" routerLink="admin/apadrinhamentos" routerLinkActive="active">⭐ Apadrinhamentos</a>
           <a class="dash-nav-btn" routerLink="admin/ocorrencias"     routerLinkActive="active">🚨 Ocorrências</a>
           <a class="dash-nav-btn" routerLink="admin/visitas"         routerLinkActive="active">📅 Visitas</a>
-          <a class="dash-nav-btn" routerLink="admin/usuarios"        routerLinkActive="active">👥 Usuários</a>
+
           <a class="dash-nav-btn" routerLink="admin/configuracoes"   routerLinkActive="active">💰 Configurações Pix</a>
         }
 

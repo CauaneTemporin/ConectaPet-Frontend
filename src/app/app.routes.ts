@@ -126,11 +126,7 @@ export const routes: Routes = [
         canActivate: [ongAdminGuard],
         loadComponent: () => import('./pages/dashboard/admin/follow-up/admin-follow-up.component').then(m => m.AdminFollowUpComponent)
       },
-      {
-        path: 'admin/usuarios',
-        canActivate: [ongAdminGuard],
-        loadComponent: () => import('./pages/dashboard/admin/usuarios/admin-usuarios.component').then(m => m.AdminUsuariosComponent)
-      },
+
       {
         path: 'ong/membros',
         canActivate: [authGuard],

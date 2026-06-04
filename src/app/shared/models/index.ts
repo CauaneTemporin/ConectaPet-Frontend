@@ -258,6 +258,7 @@ export interface OngMembro {
   role: OngMembroRole;
   status: OngMembroStatus;
   joinedAt: string;
+  userGlobalRole?: UserRole;
 }
 
 export interface CriarOngRequest {
