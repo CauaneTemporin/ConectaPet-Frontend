@@ -150,6 +150,10 @@ export class GodparentService {
     return this.http.delete<void>(`${API}/godparents/${id}`);
   }
 
+  adminDelete(id: number): Observable<void> {
+    return this.http.delete<void>(`${API}/godparents/${id}/admin`);
+  }
+
   listAll(status?: string): Observable<Godparent[]> {
     let params = new HttpParams();
     if (status) params = params.set('status', status);

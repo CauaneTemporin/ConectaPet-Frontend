@@ -60,7 +60,7 @@ import { DonationStats } from '../../shared/models';
           <button class="pix-close" (click)="closePixModal()">✕</button>
 
           <h3 class="pix-title">Pagamento via PIX</h3>
-          <p class="pix-subtitle">Escaneie o QR Code abaixo para concluir sua doação de <strong>{{ pendingAmount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong></p>
+          <p class="pix-subtitle">Escaneie o QR Code abaixo para concluir sua doação</p>
 
           <img src="assets/pagamento.jpeg" alt="QR Code PIX" class="pix-qr">
 

@@ -75,10 +75,38 @@ import { Godparent } from '../../../../shared/models';
               } @else {
                 <span class="approved-tag">✅ Aprovado</span>
               }
+              <button class="btn btn-danger btn-sm" (click)="openDelete(g)"
+                [disabled]="deleting() === g.id" style="margin-top: 4px;">
+                @if (deleting() === g.id) { <span class="spin-inline"></span> } @else { 🗑 }
+                Remover
+              </button>
             </div>
 
           </div>
         }
+      </div>
+    }
+
+    <!-- MODAL: confirmar remoção -->
+    @if (deleteTarget()) {
+      <div class="modal-backdrop" (click)="closeDelete()">
+        <div class="modal-box" (click)="$event.stopPropagation()">
+          <div class="modal-header">
+            <h3>Remover apadrinhamento?</h3>
+            <button class="modal-close" (click)="closeDelete()">✕</button>
+          </div>
+          <p class="modal-desc">
+            Tem certeza que deseja remover o apadrinhamento de
+            <strong>{{ deleteTarget()!.userName ?? deleteTarget()!.userEmail }}</strong>
+            pelo animal <strong>{{ deleteTarget()!.animalName }}</strong>?
+          </p>
+          <div class="modal-actions">
+            <button class="btn btn-outline" (click)="closeDelete()">Cancelar</button>
+            <button class="btn btn-danger-solid" (click)="confirmDelete()" [disabled]="saving()">
+              @if (saving()) { <span class="spin-inline"></span> } Confirmar remoção
+            </button>
+          </div>
+        </div>
       </div>
     }
   `,
@@ -107,6 +135,15 @@ import { Godparent } from '../../../../shared/models';
 
     .approved-tag { font-size: 13px; color: #065f46; font-weight: 700; }
     .spin-inline { display: inline-block; width: 12px; height: 12px; border: 2px solid rgba(0,0,0,0.15); border-top-color: currentColor; border-radius: 50%; animation: spin .7s linear infinite; }
+    .btn-danger { background: #fee2e2; color: #dc2626; border: none; border-radius: var(--r-sm); padding: .35rem .75rem; font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px; &:hover { background: #fca5a5; } &:disabled { opacity: .5; cursor: not-allowed; } }
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1rem; }
+    .modal-box { background: white; border-radius: var(--r); padding: 2rem; max-width: 420px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; h3 { font-family: 'Lora', serif; font-size: 1.2rem; color: var(--forest); } }
+    .modal-close { background: none; border: none; font-size: 16px; cursor: pointer; color: var(--muted); padding: 4px 8px; border-radius: var(--r-sm); &:hover { background: var(--cream); } }
+    .modal-desc { font-size: 14px; color: var(--muted); line-height: 1.7; margin-bottom: 1.5rem; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+    .btn-outline { background: none; border: 1.5px solid var(--border); color: var(--text); border-radius: var(--r-sm); padding: .6rem 1.25rem; font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 14px; cursor: pointer; &:hover { background: var(--cream); } }
+    .btn-danger-solid { background: #dc2626; color: white; border: none; border-radius: var(--r-sm); padding: .6rem 1.25rem; font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; &:hover { background: #b91c1c; } &:disabled { opacity: .6; cursor: not-allowed; } }
 
     @media (max-width: 900px) {
       .gp-row { grid-template-columns: 1fr 1fr; }
@@ -121,6 +158,9 @@ export class AdminGodparentsComponent implements OnInit {
   items        = signal<Godparent[]>([]);
   loading      = signal(true);
   approving    = signal<number | null>(null);
+  deleting     = signal<number | null>(null);
+  deleteTarget = signal<Godparent | null>(null);
+  saving       = signal(false);
   filterStatus = '';
 
   ngOnInit(): void { this.load(); }
@@ -142,6 +182,30 @@ export class AdminGodparentsComponent implements OnInit {
         this.load();
       },
       error: (err: any) => { this.toast.handleError(err); this.approving.set(null); }
+    });
+  }
+
+  openDelete(g: Godparent): void { this.deleteTarget.set(g); }
+  closeDelete(): void { this.deleteTarget.set(null); }
+
+  confirmDelete(): void {
+    const g = this.deleteTarget();
+    if (!g) return;
+    this.saving.set(true);
+    this.deleting.set(g.id);
+    this.svc.adminDelete(g.id).subscribe({
+      next: () => {
+        this.toast.success(`Apadrinhamento de ${g.animalName} removido.`);
+        this.closeDelete();
+        this.saving.set(false);
+        this.deleting.set(null);
+        this.load();
+      },
+      error: (err: any) => {
+        this.toast.handleError(err);
+        this.saving.set(false);
+        this.deleting.set(null);
+      }
     });
   }
 }
