@@ -207,6 +207,7 @@ export interface Ong {
   historia?: string;
   missao?: string;
   logoUrl?: string;
+  pixQrCodeUrl?: string;
   facebook?: string;
   whatsapp?: string;
   instagram?: string;
@@ -222,6 +223,7 @@ export interface AtualizarPerfilOngRequest {
   historia?: string;
   missao?: string;
   logoUrl?: string;
+  pixQrCodeUrl?: string;
   telefone?: string;
   cep?: string;
   endereco?: string;

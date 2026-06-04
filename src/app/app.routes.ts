@@ -135,6 +135,11 @@ export const routes: Routes = [
         path: 'ong/membros',
         canActivate: [authGuard],
         loadComponent: () => import('./pages/dashboard/ong/membros/ong-membros.component').then(m => m.OngMembrosComponent)
+      },
+      {
+        path: 'admin/configuracoes',
+        canActivate: [ongAdminGuard],
+        loadComponent: () => import('./pages/dashboard/admin/config/admin-config.component').then(m => m.AdminConfigComponent)
       }
     ]
   },

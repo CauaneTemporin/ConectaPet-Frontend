@@ -1,8 +1,9 @@
 import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { DonationService } from '../../core/services/api.services';
+import { DonationService, OngService } from '../../core/services/api.services';
 import { AuthService } from '../../core/services/auth.service';
+import { OngContextService } from '../../core/services/ong-context.service';
 import { ToastService } from '../../core/services/toast.service';
 import { DonationStats } from '../../shared/models';
 
@@ -62,7 +63,14 @@ import { DonationStats } from '../../shared/models';
           <h3 class="pix-title">Pagamento via PIX</h3>
           <p class="pix-subtitle">Escaneie o QR Code abaixo para concluir sua doação</p>
 
-          <img src="assets/pagamento.jpeg" alt="QR Code PIX" class="pix-qr">
+          @if (pixQrCodeUrl()) {
+            <img [src]="pixQrCodeUrl()" alt="QR Code PIX" class="pix-qr">
+          } @else {
+            <div class="pix-qr pix-qr-empty">
+              <span>⚠️</span>
+              <span>QR Code não configurado.<br>Entre em contato com a ONG.</span>
+            </div>
+          }
 
           <div class="timer-wrap">
             <div class="timer-label">
@@ -136,6 +144,11 @@ import { DonationStats } from '../../shared/models';
       border: 2px solid var(--border); border-radius: var(--r-sm);
       margin-bottom: 1.5rem;
     }
+    .pix-qr-empty {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 8px; font-size: 13px; color: var(--muted); line-height: 1.5;
+      background: var(--cream);
+    }
     .timer-wrap { background: var(--teal-light); border-radius: var(--r-sm); padding: 1rem; }
     .timer-label { font-size: 13px; font-weight: 700; color: var(--forest); margin-bottom: .5rem; }
     .timer-clock {
@@ -153,8 +166,12 @@ import { DonationStats } from '../../shared/models';
 })
 export class DonateComponent implements OnInit, OnDestroy {
   private donationSvc = inject(DonationService);
+  private ongSvc      = inject(OngService);
+  private ongCtx      = inject(OngContextService);
   private toast       = inject(ToastService);
   auth                = inject(AuthService);
+
+  pixQrCodeUrl = signal<string | null>(null);
 
   amount        = 50;
   customAmount  = '';
@@ -176,6 +193,13 @@ export class DonateComponent implements OnInit, OnDestroy {
     this.donationSvc.stats().subscribe({ next: (s: any) => this.stats.set(s), error: () => {} });
     const u = this.auth.currentUser();
     if (u) { this.donorName = u.name; this.donorEmail = u.email; }
+    const ongId = this.ongCtx.selectedOngId();
+    if (ongId) {
+      this.ongSvc.buscarPorId(ongId).subscribe({
+        next: (ong) => { this.pixQrCodeUrl.set(ong.pixQrCodeUrl ?? null); },
+        error: () => {}
+      });
+    }
   }
 
   ngOnDestroy(): void { this.clearTimer(); }
