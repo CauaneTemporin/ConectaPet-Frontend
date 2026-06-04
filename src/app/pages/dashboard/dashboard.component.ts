@@ -27,19 +27,19 @@ import { OngContextService } from '../../core/services/ong-context.service';
 
         <h2>Painel</h2>
 
-        @if (!auth.isAdmin()) {
+        @if (!auth.isAdmin() && !ongCtx.isOngAdmin()) {
           <a class="dash-nav-btn" routerLink="visao-geral"      routerLinkActive="active">📊 Visão Geral</a>
           <a class="dash-nav-btn" routerLink="minhas-adocoes"   routerLinkActive="active">🏠 Minhas Adoções</a>
           <a class="dash-nav-btn" routerLink="minhas-doacoes"   routerLinkActive="active">♥ Minhas Doações</a>
           <a class="dash-nav-btn" routerLink="meus-afilhados"   routerLinkActive="active">⭐ Meus Afilhados</a>
           <a class="dash-nav-btn" routerLink="meu-voluntariado" routerLinkActive="active">🙋 Voluntariado</a>
           <a class="dash-nav-btn" routerLink="minhas-denuncias" routerLinkActive="active">🚨 Minhas Ocorrências</a>
+        }
 
-          @if (ongCtx.hasOng()) {
+        @if (ongCtx.hasOng()) {
             <div class="dash-divider"></div>
             <span class="dash-section-label">Minha ONG</span>
             <a class="dash-nav-btn" routerLink="ong/membros" routerLinkActive="active">👥 Membros</a>
-          }
         }
 
         @if (auth.isGestorOrAdmin()) {
