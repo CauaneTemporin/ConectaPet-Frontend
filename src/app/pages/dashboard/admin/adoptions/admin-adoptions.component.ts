@@ -93,6 +93,16 @@ import { Adoption } from '../../../../shared/models';
                         <a [href]="'mailto:' + a.userEmail" class="link">{{ a.userEmail }}</a>
                       </div>
                     </div>
+                    <div class="detail-item">
+                      <div class="detail-label">Telefone</div>
+                      <div class="detail-val">
+                        @if (a.userPhone) {
+                          <a [href]="'tel:' + a.userPhone" class="link">{{ a.userPhone }}</a>
+                        } @else {
+                          <span class="no-info">Não informado</span>
+                        }
+                      </div>
+                    </div>
                     @if (a.reviewedAt) {
                       <div class="detail-item">
                         <div class="detail-label">Revisado em</div>

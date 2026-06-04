@@ -52,7 +52,7 @@ import { OngContextService } from '../../core/services/ong-context.service';
           <div class="dash-divider"></div>
           <span class="dash-section-label">Administração</span>
           <a class="dash-nav-btn" routerLink="admin/animais"         routerLinkActive="active">🐾 Gerenciar Animais</a>
-          <a class="dash-nav-btn" routerLink="admin/adocoes"         routerLinkActive="active">📋 Solicitações</a>
+          <a class="dash-nav-btn" routerLink="admin/adocoes"         routerLinkActive="active">📋 Adoção</a>
           <a class="dash-nav-btn" routerLink="admin/doacoes"         routerLinkActive="active">💰 Doações</a>
           <a class="dash-nav-btn" routerLink="admin/mensagens"       routerLinkActive="active">✉️ Mensagens</a>
           <a class="dash-nav-btn" routerLink="admin/voluntarios"     routerLinkActive="active">🤝 Voluntários</a>

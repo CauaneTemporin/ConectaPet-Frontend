@@ -39,7 +39,7 @@ export interface AnimalFilter { species?: string; size?: string; status?: string
 export type AdoptionStatus = 'pendente' | 'aprovado' | 'recusado' | 'concluido';
 export interface Adoption {
   id: number; animalId: number; animalName: string; animalSpecies: string; animalPhoto?: string;
-  userId: number; userName: string; userEmail: string;
+  userId: number; userName: string; userEmail: string; userPhone?: string;
   status: AdoptionStatus; message?: string;
   createdAt: string; reviewedAt?: string;
 }
