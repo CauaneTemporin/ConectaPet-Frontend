@@ -77,7 +77,13 @@ const TYPE_ICONS: Record<string, string> = {
             </div>
 
             @if (occ.adminNotes) {
-              <div class="admin-note"><strong>Nota interna:</strong> {{ occ.adminNotes }}</div>
+              <div class="admin-note"><strong>Observação do gestor:</strong> {{ occ.adminNotes }}</div>
+            }
+            @if (occ.analisadoPorNome) {
+              <div class="analyst-info">
+                Analisado por <strong>{{ occ.analisadoPorNome }}</strong>
+                @if (occ.analisadoEm) { em {{ occ.analisadoEm | date:'dd/MM/yyyy HH:mm' }} }
+              </div>
             }
 
             <div class="occ-actions">
@@ -109,9 +115,9 @@ const TYPE_ICONS: Record<string, string> = {
             </select>
           </div>
           <div class="form-field">
-            <label class="form-label">Nota interna (opcional)</label>
+            <label class="form-label">Observação do gestor (opcional)</label>
             <textarea class="form-input" [(ngModel)]="updateNotes" rows="3"
-              placeholder="Observações para a equipe..."></textarea>
+              placeholder="Descreva as ações tomadas ou conclusões..."></textarea>
           </div>
           <div class="modal-actions">
             <button class="btn btn-outline-teal" (click)="closeUpdate()">Cancelar</button>
@@ -171,7 +177,8 @@ const TYPE_ICONS: Record<string, string> = {
     .detail-item.muted { color: var(--muted); }
     .detail-icon { font-size: .95rem; }
 
-    .admin-note { background: var(--cream); border-left: 3px solid var(--teal); padding: .6rem .9rem; border-radius: 0 var(--r-sm) var(--r-sm) 0; font-size: 13px; color: var(--text); margin-bottom: .75rem; }
+    .admin-note { background: var(--cream); border-left: 3px solid var(--teal); padding: .6rem .9rem; border-radius: 0 var(--r-sm) var(--r-sm) 0; font-size: 13px; color: var(--text); margin-bottom: .5rem; }
+    .analyst-info { font-size: 12px; color: var(--muted); margin-bottom: .75rem; }
 
     .occ-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
 

@@ -73,6 +73,28 @@ export const ongContextGuard: CanActivateFn = () => {
   return false;
 };
 
+export const gestorOrOngAdminGuard: CanActivateFn = (): boolean | Observable<boolean> => {
+  const auth   = inject(AuthService);
+  const ongCtx = inject(OngContextService);
+  const router = inject(Router);
+  const toast  = inject(ToastService);
+
+  if (auth.isGestorOrAdmin() || ongCtx.isOngAdmin()) return true;
+
+  return auth.getProfile().pipe(
+    map(() => {
+      if (auth.isGestorOrAdmin() || ongCtx.isOngAdmin()) return true;
+      toast.error('Acesso restrito.');
+      router.navigate(['/dashboard']);
+      return false;
+    }),
+    catchError(() => {
+      router.navigate(['/dashboard']);
+      return of(false);
+    })
+  );
+};
+
 export const ongAdminGuard: CanActivateFn = (): boolean | Observable<boolean> => {
   const auth   = inject(AuthService);
   const ongCtx = inject(OngContextService);

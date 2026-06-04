@@ -123,6 +123,8 @@ export interface Occurrence {
   userId?: number;
   status: OccurrenceStatus;
   adminNotes?: string;
+  analisadoPorNome?: string;
+  analisadoEm?: string;
   createdAt: string;
 }
 

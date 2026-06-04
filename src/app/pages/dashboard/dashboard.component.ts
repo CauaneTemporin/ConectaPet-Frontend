@@ -45,7 +45,7 @@ import { OngContextService } from '../../core/services/ong-context.service';
         @if (auth.isGestorOrAdmin()) {
           <div class="dash-divider"></div>
           <span class="dash-section-label">Gestor Público</span>
-          <a class="dash-nav-btn" routerLink="gestor/denuncias" routerLinkActive="active">📋 Denúncias</a>
+          <a class="dash-nav-btn" routerLink="admin/ocorrencias" routerLinkActive="active">🚨 Ocorrências</a>
         }
 
         @if (auth.isAdmin() || ongCtx.isOngAdmin()) {

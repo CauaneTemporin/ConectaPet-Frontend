@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard, adminGuard, gestorGuard, guestGuard, ongContextGuard, ongAdminGuard } from './core/guards/auth.guard';
+import { authGuard, adminGuard, gestorGuard, guestGuard, ongContextGuard, ongAdminGuard, gestorOrOngAdminGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   {
@@ -81,11 +81,7 @@ export const routes: Routes = [
         path: 'minhas-denuncias',
         loadComponent: () => import('./pages/dashboard/my-denuncias/my-denuncias.component').then(m => m.MyDenunciasComponent)
       },
-      {
-        path: 'gestor/denuncias',
-        canActivate: [gestorGuard],
-        loadComponent: () => import('./pages/dashboard/admin/denuncias/admin-denuncias.component').then(m => m.AdminDenunciasComponent)
-      },
+
       {
         path: 'admin/animais',
         canActivate: [ongAdminGuard],
@@ -118,7 +114,7 @@ export const routes: Routes = [
       },
       {
         path: 'admin/ocorrencias',
-        canActivate: [ongAdminGuard],
+        canActivate: [gestorOrOngAdminGuard],
         loadComponent: () => import('./pages/dashboard/admin/occurrences/admin-occurrences.component').then(m => m.AdminOccurrencesComponent)
       },
       {
