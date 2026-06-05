@@ -61,7 +61,19 @@ import { DonationStats } from '../../shared/models';
           <button class="pix-close" (click)="closePixModal()">✕</button>
 
           <h3 class="pix-title">Pagamento via PIX</h3>
-          <p class="pix-subtitle">Escaneie o QR Code abaixo para concluir sua doação</p>
+
+          <div class="pix-amount-badge">
+            Valor: <strong>{{ pendingAmount | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}</strong>
+          </div>
+
+          <!-- Instruções -->
+          <ol class="pix-steps">
+            <li>Abra o app do seu banco</li>
+            <li>Escolha pagar via <strong>PIX</strong></li>
+            <li>Escaneie o QR Code ou cole o código</li>
+            <li>Confirme o pagamento no seu banco</li>
+            <li>Clique em <strong>"Já paguei"</strong> abaixo</li>
+          </ol>
 
           @if (pixQrCodeUrl()) {
             <img [src]="pixQrCodeUrl()" alt="QR Code PIX" class="pix-qr">
@@ -72,23 +84,37 @@ import { DonationStats } from '../../shared/models';
             </div>
           }
 
+          @if (pixCopiaCola()) {
+            <div class="pix-copy-wrap">
+              <span class="pix-copy-label">PIX Copia e Cola</span>
+              <div class="pix-copy-row">
+                <code class="pix-copy-code">{{ pixCopiaCola() }}</code>
+                <button class="pix-copy-btn" (click)="copiarPix()" [class.copied]="copiado()">
+                  {{ copiado() ? '✓ Copiado' : 'Copiar' }}
+                </button>
+              </div>
+            </div>
+          }
+
           <div class="timer-wrap">
             <div class="timer-label">
-              @if (!timerDone()) {
-                ⏳ Aguardando confirmação...
+              @if (timerDone()) {
+                ⏰ Tempo expirado — clique em "Já paguei" se realizou o pagamento
               } @else {
-                ✅ Pagamento confirmado!
+                ⏳ Tempo restante para concluir
               }
             </div>
-
-            <div class="timer-clock">{{ timerMinutes }}:{{ timerSecs }}</div>
-
+            <div class="timer-clock" [class.timer-expired]="timerDone()">{{ timerMinutes }}:{{ timerSecs }}</div>
             <div class="timer-bar-bg">
               <div class="timer-bar-fill" [style.width.%]="timerProgress"></div>
             </div>
           </div>
 
-          @if (loading()) {
+          @if (!loading()) {
+            <button class="btn btn-rose btn-full pix-confirm-btn" (click)="confirmDonation()">
+              ✓ Já paguei
+            </button>
+          } @else {
             <div class="pix-loading"><span class="spin-inline"></span> Registrando doação...</div>
           }
         </div>
@@ -161,6 +187,36 @@ import { DonationStats } from '../../shared/models';
       height: 100%; background: var(--teal-dark); border-radius: 99px;
       transition: width 1s linear;
     }
+    .pix-amount-badge {
+      display: inline-block; background: var(--teal-light); color: var(--teal-dark);
+      border-radius: 99px; padding: .35rem 1.1rem; font-size: 14px;
+      margin-bottom: 1rem;
+      strong { font-size: 1.1rem; }
+    }
+    .pix-steps {
+      text-align: left; margin: 0 0 1.25rem 0; padding-left: 1.4rem;
+      li { font-size: 13px; color: var(--muted); line-height: 1.9; }
+    }
+    .pix-copy-wrap {
+      margin-bottom: 1.25rem; background: var(--cream);
+      border-radius: var(--r-sm); padding: .75rem 1rem;
+      text-align: left;
+    }
+    .pix-copy-label { font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 6px; }
+    .pix-copy-row { display: flex; align-items: center; gap: 8px; }
+    .pix-copy-code {
+      flex: 1; font-size: 11.5px; color: var(--forest); font-family: monospace;
+      word-break: break-all; line-height: 1.5;
+    }
+    .pix-copy-btn {
+      flex-shrink: 0; padding: .3rem .75rem; font-size: 12px; font-weight: 700;
+      border: 1.5px solid var(--teal); border-radius: var(--r-sm);
+      background: white; color: var(--teal-dark); cursor: pointer; transition: background .15s;
+      &:hover { background: var(--teal-light); }
+      &.copied { background: var(--teal); color: white; border-color: var(--teal); }
+    }
+    .timer-expired { color: #dc2626 !important; }
+    .pix-confirm-btn { margin-top: 1.25rem; padding: .75rem; font-size: 15px; font-weight: 700; }
     .pix-loading { margin-top: 1rem; font-size: 13px; color: var(--muted); display: flex; align-items: center; justify-content: center; gap: 8px; }
   `]
 })
@@ -171,7 +227,9 @@ export class DonateComponent implements OnInit, OnDestroy {
   private toast       = inject(ToastService);
   auth                = inject(AuthService);
 
-  pixQrCodeUrl = signal<string | null>(null);
+  pixQrCodeUrl  = signal<string | null>(null);
+  pixCopiaCola  = signal<string | null>(null);
+  copiado       = signal(false);
 
   amount        = 50;
   customAmount  = '';
@@ -182,7 +240,7 @@ export class DonateComponent implements OnInit, OnDestroy {
   stats         = signal<DonationStats | null>(null);
 
   pixModalVisible = signal(false);
-  timerSeconds    = signal(300); // 5 min
+  timerSeconds    = signal(300);
   timerDone       = signal(false);
   pendingAmount   = 0;
 
@@ -196,7 +254,10 @@ export class DonateComponent implements OnInit, OnDestroy {
     const ongId = this.ongCtx.selectedOngId();
     if (ongId) {
       this.ongSvc.buscarPorId(ongId).subscribe({
-        next: (ong) => { this.pixQrCodeUrl.set(ong.pixQrCodeUrl ?? null); },
+        next: (ong) => {
+          this.pixQrCodeUrl.set(ong.pixQrCodeUrl ?? null);
+          this.pixCopiaCola.set(ong.pixCopiaCola ?? null);
+        },
         error: () => {}
       });
     }
@@ -220,7 +281,7 @@ export class DonateComponent implements OnInit, OnDestroy {
     return String(this.timerSeconds() % 60).padStart(2, '0');
   }
   get timerProgress(): number {
-    return ((this.TOTAL_SECONDS - this.timerSeconds()) / this.TOTAL_SECONDS) * 100;
+    return (this.timerSeconds() / this.TOTAL_SECONDS) * 100;
   }
 
   openPixModal(): void {
@@ -248,7 +309,6 @@ export class DonateComponent implements OnInit, OnDestroy {
         this.timerSeconds.set(0);
         this.timerDone.set(true);
         this.clearTimer();
-        this.confirmDonation();
       } else {
         this.timerSeconds.set(curr - 1);
       }
@@ -259,7 +319,7 @@ export class DonateComponent implements OnInit, OnDestroy {
     if (this.intervalId) { clearInterval(this.intervalId); this.intervalId = null; }
   }
 
-  private confirmDonation(): void {
+  confirmDonation(): void {
     this.loading.set(true);
     this.donationSvc.donate({
       amount: this.pendingAmount,
@@ -275,6 +335,15 @@ export class DonateComponent implements OnInit, OnDestroy {
         this.donorMessage = ''; this.customAmount = '';
       },
       error: (err: any) => { this.toast.handleError(err); this.loading.set(false); }
+    });
+  }
+
+  copiarPix(): void {
+    const codigo = this.pixCopiaCola();
+    if (!codigo) return;
+    navigator.clipboard.writeText(codigo).then(() => {
+      this.copiado.set(true);
+      setTimeout(() => this.copiado.set(false), 2500);
     });
   }
 

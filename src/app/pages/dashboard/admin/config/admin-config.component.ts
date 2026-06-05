@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { OngService } from '../../../../core/services/api.services';
 import { OngContextService } from '../../../../core/services/ong-context.service';
 import { ToastService } from '../../../../core/services/toast.service';
@@ -7,7 +8,7 @@ import { ToastService } from '../../../../core/services/toast.service';
 @Component({
   selector: 'app-admin-config',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="panel-header">
       <h2 class="dash-title">Configurações</h2>
@@ -68,6 +69,38 @@ import { ToastService } from '../../../../core/services/toast.service';
           </button>
           @if (hasExisting() && preview()) {
             <button class="btn-link-danger" (click)="removerQr()">Remover QR Code salvo</button>
+          }
+        </div>
+      </div>
+
+      <!-- Card PIX Copia e Cola -->
+      <div class="config-card" style="margin-top:1.5rem">
+        <div class="config-card-header">
+          <div class="config-icon">📋</div>
+          <div>
+            <h3 class="config-title">PIX Copia e Cola</h3>
+            <p class="config-desc">Cole aqui a chave ou código PIX completo (Copia e Cola). Será exibido no modal de pagamento para o doador copiar com um clique.</p>
+          </div>
+        </div>
+
+        <div class="pix-key-field">
+          <textarea class="pix-key-input" rows="3"
+            [ngModel]="pixCopiaCola()" (ngModelChange)="pixCopiaCola.set($event)"
+            placeholder="Cole aqui o código PIX Copia e Cola completo..."></textarea>
+          @if (pixCopiaCola()) {
+            <div class="pix-key-preview">
+              <span class="pix-key-label">Prévia:</span>
+              <code class="pix-key-code">{{ pixCopiaCola() | slice:0:60 }}{{ (pixCopiaCola() || '').length > 60 ? '...' : '' }}</code>
+            </div>
+          }
+        </div>
+
+        <div class="config-actions">
+          <button class="btn btn-teal" (click)="salvarPix()" [disabled]="savingPix()">
+            @if (savingPix()) { <span class="spin-inline"></span> } Salvar chave PIX
+          </button>
+          @if (pixCopiaCola()) {
+            <button class="btn-link-danger" (click)="removerPix()">Remover chave PIX</button>
           }
         </div>
       </div>
@@ -133,6 +166,22 @@ import { ToastService } from '../../../../core/services/toast.service';
     .config-actions { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
     .btn-link-danger { background: none; border: none; color: #dc2626; font-size: 13px; font-weight: 700; cursor: pointer; text-decoration: underline; }
 
+    .pix-key-field { margin-bottom: 1rem; }
+    .pix-key-input {
+      width: 100%; box-sizing: border-box; padding: .75rem 1rem;
+      border: 1.5px solid var(--border); border-radius: var(--r-sm);
+      font-size: 13px; font-family: monospace; color: var(--forest);
+      resize: vertical; outline: none; transition: border-color .2s;
+      &:focus { border-color: var(--teal); }
+    }
+    .pix-key-preview {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--cream); border-radius: var(--r-sm);
+      padding: .5rem .75rem; margin-top: .5rem;
+    }
+    .pix-key-label { font-size: 11px; color: var(--muted); font-weight: 700; white-space: nowrap; }
+    .pix-key-code { font-size: 12px; color: var(--forest); font-family: monospace; word-break: break-all; }
+
     .spin-inline { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(0,0,0,0.15); border-top-color: currentColor; border-radius: 50%; animation: spin .7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -147,12 +196,14 @@ export class AdminConfigComponent implements OnInit {
   private ongCtx  = inject(OngContextService);
   private toast   = inject(ToastService);
 
-  ongId       = this.ongCtx.selectedOngId;
-  preview     = signal<string | null>(null);
-  fileName    = signal('');
-  sizeError   = signal(false);
-  saving      = signal(false);
-  hasExisting = signal(false);
+  ongId        = this.ongCtx.selectedOngId;
+  preview      = signal<string | null>(null);
+  fileName     = signal('');
+  sizeError    = signal(false);
+  saving       = signal(false);
+  hasExisting  = signal(false);
+  pixCopiaCola = signal('');
+  savingPix    = signal(false);
 
   private readonly MAX_BYTES = 2 * 1024 * 1024; // 2 MB
 
@@ -165,6 +216,9 @@ export class AdminConfigComponent implements OnInit {
           this.preview.set(ong.pixQrCodeUrl);
           this.hasExisting.set(true);
           this.fileName.set('QR Code salvo');
+        }
+        if (ong.pixCopiaCola) {
+          this.pixCopiaCola.set(ong.pixCopiaCola);
         }
       },
       error: () => {}
@@ -224,6 +278,33 @@ export class AdminConfigComponent implements OnInit {
         this.saving.set(false);
       },
       error: (err: any) => { this.toast.handleError(err); this.saving.set(false); }
+    });
+  }
+
+  salvarPix(): void {
+    const id = this.ongId();
+    if (!id) return;
+    this.savingPix.set(true);
+    this.ongSvc.atualizarPerfil(id, { pixCopiaCola: this.pixCopiaCola() }).subscribe({
+      next: () => {
+        this.toast.success('Chave PIX salva com sucesso!');
+        this.savingPix.set(false);
+      },
+      error: (err: any) => { this.toast.handleError(err); this.savingPix.set(false); }
+    });
+  }
+
+  removerPix(): void {
+    const id = this.ongId();
+    if (!id) return;
+    this.savingPix.set(true);
+    this.ongSvc.atualizarPerfil(id, { pixCopiaCola: '' }).subscribe({
+      next: () => {
+        this.toast.success('Chave PIX removida.');
+        this.pixCopiaCola.set('');
+        this.savingPix.set(false);
+      },
+      error: (err: any) => { this.toast.handleError(err); this.savingPix.set(false); }
     });
   }
 }

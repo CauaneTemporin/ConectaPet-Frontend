@@ -93,7 +93,7 @@ import { OngContextService } from '../../core/services/ong-context.service';
         color: rgba(255,255,255,0.5);
         margin-bottom: 1rem;
         padding: 1.5rem 0 .75rem;
-        border-bottom: 1px solid rgba(255,255,255,0.1);
+        border-bottom: none;
       }
     }
 
